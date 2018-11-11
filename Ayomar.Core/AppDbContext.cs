@@ -50,6 +50,10 @@ namespace Ayomar.Core
         /// 
         /// </summary>
         public AppDbSet<SysPendingTrials> SysPendingTrials { get { return new AppDbSet<SysPendingTrials>(Db); } }
+        /// <summary>
+        /// 
+        /// </summary>
+        public AppDbSet<SysSchedules> SysSchedules { get { return new AppDbSet<SysSchedules>(Db); } }
 
         #endregion
 

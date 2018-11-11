@@ -5,7 +5,7 @@
     <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
     <el-breadcrumb-item>系统管理</el-breadcrumb-item>
     <el-breadcrumb-item>系统配置</el-breadcrumb-item>
-    <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" size="small" :loading="loading" round style="float:right">保存配置</el-button>
+    <el-button type="primary" @@click="submitFormSystem('form')" icon="el-icon-success" size="small" :loading="loading" round style="float:right">保存配置</el-button>
 </el-breadcrumb>
 <template>
     <el-form :model="Model" :inline="true" ref="form">
@@ -340,13 +340,11 @@
     var mixin = {
         data() {
             return {
-                Model: Object,
                 AttachImageExtension: [],
                 AttachVideoExtension: [],
                 AttachAudioExtension: [],
                 AttachDocumentExtension: [],
-                AttachFileExtension: [],
-                loading: false
+                AttachFileExtension: []
             }
         },
         created() {
@@ -369,7 +367,7 @@
             formatTooltip(val) {
                 return val + " KB";
             },
-            submitForm(formName) {
+            submitFormSystem(formName) {
                 this.$refs[formName].validate((valid) => {
                     if (valid) {
                         this.$prompt('敏感操作：请输入您的二级密码', {

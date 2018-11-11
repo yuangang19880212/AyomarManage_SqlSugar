@@ -39,7 +39,7 @@
                     <el-menu-item index="3-4"><a href="/SystemManage/Account">安全退出</a><i class="iconfont icon-exit" style="margin-left:15px;"></i></el-menu-item>
                 </el-submenu>
                 <el-menu-item index="4" style="float:right"><i class="el-icon-time" style="color:#ec0c72"></i><span v-text="timeNow"></span></el-menu-item>
-            </el-menu>           
+            </el-menu>
         </el-header>
         <el-container>
             <el-aside :width="isCollapse?'64px':'200px'" style="background-color:rgb(58, 63, 81)">
@@ -76,15 +76,20 @@
 <script src="/lib/element/js/index.js"></script>
 @RenderSection("Scripts", required: false)
 <script>
-    const [...permissions] = @Html.Raw(ViewContext.HttpContext.Items["PermissJson"]);      
+    const [...permissions] = @Html.Raw(ViewContext.HttpContext.Items["PermissJson"]);
     var vm = new Vue({
-        el: '#app',       
+        el: '#app',
         data() {
             return {
+                Model: Object,
                 Menus: [],
-                isCollapse: false,           
+                isCollapse: false,
                 defaultActive: '',
+                moduleManage:'',
                 loadingDatas: false,
+                multipleSelection: [],
+                dialogFormVisible: false,
+                loading: false,
                 timeNow:''
             }
         },
@@ -100,7 +105,8 @@
             }
             let url = window.location.href.split("/");
             let value = url[url.length - 1].includes('?') ? url[url.length - 1].split("?")[0] : url[url.length - 1];
-            value = value.replace(/\b[a-z]/g, char => char.toUpperCase())
+            this.moduleManage = url[url.length - 1].includes('?') ? '/' + url[url.length - 2] + '/' + url[url.length - 1].split("?")[0] : '/' + url[url.length - 2] + '/' +url[url.length - 1];
+            value = value.replace(/\b[a-z]/g, char => char.toUpperCase());
             this.defaultActive = value;
             if (localStorage.getItem("isCollapse") !== null) {
                 this.isCollapse = localStorage.getItem("isCollapse") === 'true';
@@ -122,6 +128,162 @@
             },
             refreshPage() {
                 location.reload();
+            },
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            handleNew() {
+                this.dialogFormVisible = true;
+            },
+            handleEdit(row) {
+                this.Model = row;
+                this.dialogFormVisible = true;
+            },
+            handleDelete(row) {
+                this.multipleSelection.push(row);
+                this.handleDeletes();
+            },
+            handleDeletes(module) {
+                if (this.multipleSelection.length == 0) {
+                    this.$message({
+                        type: 'error',
+                        center: true,
+                        message: '请选择要删除的数据'
+                    });
+
+                } else {
+                    this.$confirm('此操作将永久删除该数据, 是否继续?', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning',
+                        center: true
+                    }).then(() => {
+                        this.$prompt('敏感操作：请输入您的二级密码', {
+                            inputType: 'password',
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                            inputErrorMessage: '请输入二级密码'
+                        }).then(({ value }) => {
+                            this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                emulateJSON: true
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    this.$http.post(this.moduleManage + '/Deletes', { values: Array.from(this.multipleSelection, s => s.GUID) }, { emulateJSON: true, before: function () { this.loadingDatas = true;this.multipleSelection = []; } }).then((res) => {
+                                        let data = res.json();
+                                        if (data.success) {
+                                            if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                this.$message({
+                                                    type: 'success',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.getData();
+                                                    }
+                                                });
+                                            } else { location.href = data.returnUrl; }
+                                        } else {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: data.message,
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                        }
+                                    }).catch((res) => {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '操作失败',
+                                            onClose: function () {
+                                                vm.loadingDatas = false;
+                                            }
+                                        });
+                                    });
+
+                                } else {
+                                    this.multipleSelection = [];
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                }
+                                }).catch((res) => {
+                                    this.multipleSelection = [];
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '验证失败'
+                                });
+                            });
+                            }).catch(() => {
+                                this.multipleSelection = [];
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+                        }).catch(() => {
+                            this.multipleSelection = [];
+                        this.$message({
+                            type: 'info',
+                            center: true,
+                            message: '取消操作'
+                        });
+                    });
+                }
+
+            },
+            submitForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        this.$http.post(this.moduleManage +'/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                            emulateJSON: true, before: function () {
+                                this.loading = true;
+                            }
+                        }).then((res) => {
+                            let data = res.json();
+                            if (data.success) {
+                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                    this.$message({
+                                        type: 'success',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.loading = false;
+                                            vm.dialogFormVisible = false;
+                                            vm.getData();
+                                        }
+                                    });
+                                } else { location.href = data.returnUrl; }
+                            } else {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: data.message,
+                                    onClose: function () {
+                                        vm.loading = false;
+                                        vm.dialogFormVisible = false;
+                                    }
+                                });
+                            }
+                        }).catch((res) => {
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: '系统超时'
+                            });
+                            this.loading = false;
+                        });
+                    } else {
+                        return false;
+                    }
+                });
             }
         },
         watch: {

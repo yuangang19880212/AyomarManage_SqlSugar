@@ -137,22 +137,7 @@
         var mixin = {
             data() {
                 return {
-                    Model: {
-                        GUID: null,
-                        Genre: null,
-                        PendingTrialMessage: null,
-                        PendingTrialContent: null,
-                        CreateUser: null,
-                        CreateDate: null,
-                        Auditor: null,
-                        AuditDate: null,
-                        AduitMessage: null,
-                        IsPass: null
-                    },
                     tableData: [],
-                    multipleSelection: [],
-                    dialogFormVisible: false,
-                    loading: false,
                     search: '',
                     currentPage: 1,
                     pageSize: 100,
@@ -160,6 +145,7 @@
                 }
             },
             created() {
+                this.refreshModel();
                 this.getData();
             },
             methods: {
@@ -193,10 +179,7 @@
                 handleCurrentChange(val) {
                     this.currentPage = val;
                     this.getData();
-                },
-                handleSelectionChange(val) {
-                    this.multipleSelection = val;
-                },
+                },               
                 filterStatus(value, row) {
                     return row.IsPass === value;
                 },

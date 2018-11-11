@@ -116,19 +116,7 @@
         var mixin = {
             data() {
                 return {
-                    Model: {
-                        GUID: null,
-                        RoleName: null,
-                        RoleExplain: null,
-                        CreateUser: null,
-                        CreateDate: null,
-                        UpdateUser: null,
-                        UpdateDate: null
-                    },
                     tableData: [],
-                    multipleSelection: [],
-                    dialogFormVisible: false,
-                    loading: false,
                     loadingAllocation: false,
                     search: '',
                     currentPage: 1,
@@ -146,6 +134,7 @@
                 }
             },
             created() {
+                this.refreshModel();
                 this.getData();
             },
             methods: {
@@ -171,111 +160,7 @@
                             }
                         });
                     });
-                },
-                handleNew() {
-                    this.dialogFormVisible = true;
-                },
-                handleEdit(row) {
-                    this.Model = row;
-                    this.dialogFormVisible = true;
-                },
-                handleDelete(row) {
-                    this.multipleSelection.push(row);
-                    this.handleDeletes();
-                },
-                handleDeletes() {
-                    if (this.multipleSelection.length == 0) {
-                        this.$message({
-                            type: 'error',
-                            center: true,
-                            message: '请选择要删除的角色'
-                        });
-
-                    } else {
-                        this.$confirm('此操作将永久删除该数据, 是否继续?', {
-                            confirmButtonText: '确定',
-                            cancelButtonText: '取消',
-                            type: 'warning'
-                        }).then(() => {
-                            this.$prompt('敏感操作：请输入您的二级密码', {
-                                inputType: 'password',
-                                confirmButtonText: '确定',
-                                cancelButtonText: '取消',
-                                inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
-                                inputErrorMessage: '请输入二级密码'
-                            }).then(({ value }) => {
-                                this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
-                                    emulateJSON: true
-                                }).then((res) => {
-                                    let data = res.json();
-                                    if (data.success) {
-                                        this.$http.post('/AdminManage/Role/Deletes', { values: Array.from(this.multipleSelection, s => s.GUID) }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
-                                            let data = res.json();
-                                            if (data.success) {
-                                                if (data.returnUrl === null || data.returnUrl === undefined) {
-                                                    this.$message({
-                                                        type: 'success',
-                                                        center: true,
-                                                        message: data.message,
-                                                        onClose: function () {
-                                                            vm.getData();
-                                                        }
-                                                    });
-                                                } else { location.href = data.returnUrl; }
-                                            } else {
-                                                this.$message({
-                                                    type: 'error',
-                                                    center: true,
-                                                    message: data.message,
-                                                    onClose: function () {
-                                                        vm.loadingDatas = false;
-                                                    }
-                                                });
-                                            }
-                                            this.multipleSelection = [];
-                                        }).catch((res) => {
-                                            this.$message({
-                                                type: 'error',
-                                                center: true,
-                                                message: '操作失败',
-                                                onClose: function () {
-                                                    vm.loadingDatas = false;
-                                                }
-                                            });
-                                            this.multipleSelection = [];
-                                        });
-
-                                    } else {
-                                        this.$message({
-                                            type: 'error',
-                                            center: true,
-                                            message: '验证失败'
-                                        });
-                                    }
-                                }).catch((res) => {
-                                    this.$message({
-                                        type: 'error',
-                                        center: true,
-                                        message: '验证失败'
-                                    });
-                                });
-                            }).catch(() => {
-                                this.$message({
-                                    type: 'info',
-                                    center: true,
-                                    message: '取消操作'
-                                });
-                            });
-                        }).catch(() => {
-                            this.$message({
-                                type: 'info',
-                                center: true,
-                                message: '取消操作'
-                            });
-                        });
-                    }
-                    this.multipleSelection = [];
-                },               
+                },                              
                 handleAllocation(row) {
                     if (this.permissions.length === 0) {
                         this.getPermissions();
@@ -305,9 +190,7 @@
                     this.currentPage = val;
                     this.getData();
                 },
-                handleSelectionChange(val) {
-                    this.multipleSelection = val;
-                }, refreshModel() {
+                refreshModel() {
                     this.Model = {
                         GUID: null,
                         RoleName: null,
@@ -317,52 +200,6 @@
                         UpdateUser: null,
                         UpdateDate: null
                     };
-                },
-                submitForm(formName) {
-                    this.$refs[formName].validate((valid) => {
-                        if (valid) {
-                            this.$http.post('/AdminManage/Role/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
-                                emulateJSON: true, before: function () {
-                                    this.loading = true;
-                                }
-                            }).then((res) => {
-                                let data = res.json();
-                                if (data.success) {
-                                    if (data.returnUrl === null || data.returnUrl === undefined) {
-                                        this.$message({
-                                            type: 'success',
-                                            center: true,
-                                            message: data.message,
-                                            onClose: function () {
-                                                vm.loading = false;
-                                                vm.dialogFormVisible = false;
-                                                vm.getData();
-                                            }
-                                        });
-                                    } else { location.href = data.returnUrl; }
-                                } else {
-                                    this.$message({
-                                        type: 'error',
-                                        center: true,
-                                        message: data.message,
-                                        onClose: function () {
-                                            vm.loading = false;
-                                            vm.dialogFormVisible = false;
-                                        }
-                                    });
-                                }
-                            }).catch((res) => {
-                                this.$message({
-                                    type: 'error',
-                                    center: true,
-                                    message: '系统超时'
-                                });
-                                this.loading = false;
-                            });
-                        } else {
-                            return false;
-                        }
-                    });
                 },
                 refreshRolePermissions() {
                     this.roleGUID = null;

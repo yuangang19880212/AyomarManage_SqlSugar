@@ -49,6 +49,7 @@ namespace Ayomar.Web
             services.AddTransient<Service.ISysRoleAssignmentServcie, Service.SysRoleAssignmentServcie>();
             services.AddTransient<Service.ISysRolePermissionService, Service.SysRolePermissionService>();
             services.AddTransient<Service.ISysPendingTrialService, Service.SysPendingTrialService>();
+            services.AddTransient<Service.ISysScheduleService, Service.SysScheduleService>();
             #endregion
         }
 
