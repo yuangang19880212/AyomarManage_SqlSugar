@@ -1,0 +1,407 @@
+﻿@{
+}
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+    <el-breadcrumb-item>权限管理</el-breadcrumb-item>
+</el-breadcrumb>
+<el-container style="border: 1px solid #eee">
+    <el-aside width="200px">
+        <el-menu :default-openeds="openModules">
+            <el-submenu :index="space.Id" v-for="space in modules" :key="space.Id">
+                <template slot="title">
+                    <i :class="space.Icon"></i>{{space.Title}}
+                </template>
+                <el-menu-item-group v-for="manage in space.Menus" :key="manage.Id">
+                    <template slot="title">{{manage.Title}}
+                    </template>
+                    <el-menu-item :index="item.Id" v-for="item in manage.Items" :key="item.Id">
+                        <a @@click="selectModule(item.Guid)" v-text="item.Title"></a>
+                    </el-menu-item>
+                </el-menu-item-group>
+            </el-submenu>
+        </el-menu>
+    </el-aside>
+    <el-container>
+        <el-table :data="tableData"
+                  border
+                  header-cell-class-name="table-header"
+                  @@selection-change="handleSelectionChange"
+                  style="width: 100%">
+            <el-table-column type="selection"
+                             align="center"
+                             width="55">
+            </el-table-column>
+            <el-table-column prop="Title"
+                             align="center"
+                             label="权限名称">
+            </el-table-column>
+            <el-table-column prop="PermissionValue"
+                             align="center"
+                             label="权限值">
+            </el-table-column>          
+            <el-table-column prop="DisplayOrder"
+                             sortable
+                             align="center"
+                             label="显示顺序">
+            </el-table-column>
+            <el-table-column align="center" v-if="selectModuleGuid!=''">
+                <template slot="header" slot-scope="slot">
+                    <el-dropdown :hide-on-click="false">
+                        <span class="el-dropdown-link">
+                            操作 <i class="el-icon-arrow-down el-icon--right"></i>
+                        </span>
+                        <el-dropdown-menu slot="dropdown">                            
+                            <el-dropdown-item align="center"><el-button type="text" icon="el-icon-circle-plus-outline" action="save" @@click="handleNew">新增数据</el-button></el-dropdown-item>
+                            <el-dropdown-item align="center"><el-button type="text" icon="el-icon-delete" action="delete" @@click="handleDeletes">删除数据</el-button></el-dropdown-item>
+                            <el-dropdown-item align="center"><el-button type="text" icon="el-icon-refresh" @@click="refreshPage">刷新页面</el-button></el-dropdown-item>
+                        </el-dropdown-menu>
+                    </el-dropdown>
+                </template>
+                <template slot-scope="scope">
+                    <el-button size="mini"
+                               @@click="handleEdit(scope.row)" icon="el-icon-edit" action="save">编辑</el-button>
+                    <el-button size="mini"
+                               type="danger"
+                               @@click="handleDelete(scope.row)" icon="el-icon-delete" action="delete">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </el-container>
+</el-container>
+<el-dialog title="" :visible.sync="dialogFormVisible" width="500px" @@closed="refreshModel" :close-on-click-modal="false">
+    <el-form :model="Model" :rules="rules" ref="form">
+        @Html.AntiForgeryToken()
+        <el-form-item label="内置权限" label-width="100px" label-position="right">
+            <el-select v-model="Model.PermissionValue" placeholder="请选择" @@change="handleChange">
+                <el-option v-for="item in options"
+                           :key="item.value"
+                           :label="item.label"
+                           :value="item.value">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="模块名称" label-width="100px" label-position="right" prop="Title">
+            <el-input v-model="Model.Title" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="权限值" label-width="100px" label-position="right" prop="PermissionValue">
+            <el-input v-model="Model.PermissionValue" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="显示顺序" label-width="100px" label-position="right">
+            <el-input-number v-model="Model.DisplayOrder" controls-position="right" :min="0" :max="50"></el-input-number>
+        </el-form-item>
+    </el-form>
+    <div slot="footer" class="dialog-footer" style="text-align:center">
+        <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" :loading="loading">确 定</el-button>
+        <el-button @@click="dialogFormVisible = false" icon="el-icon-error" v-if="!loading">取 消</el-button>
+    </div>
+</el-dialog>
+@section scripts{
+    <script>
+        var mixin = {
+            data() {
+                return {
+                    tableData: [],
+                    openModules: [],
+                    selectModuleGuid: '',
+                    modules: [],
+                    Model: {
+                        GUID: null,
+                        Module_GUID: null,
+                        Title: null,
+                        PermissionValue: null,
+                        DisplayOrder: 0,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null
+                    },
+                    multipleSelection: [],
+                    dialogFormVisible: false,
+                    loading: false,
+                    options: [{
+                        value: '',
+                        label: '自定义权限'
+                    }, {
+                        value: 'View',
+                        label: '查看'
+                    }, {
+                        value: 'Detail',
+                        label: '详情'
+                    }, {
+                        value: 'List',
+                        label: '列表'
+                    }, {
+                        value: 'Add',
+                        label: '添加'
+                    }, {
+                        value: 'Edit',
+                        label: '编辑'
+                    }, {
+                        value: 'Save',
+                        label: '保存'
+                    }, {
+                        value: 'Delete',
+                        label: '删除'
+                    }, {
+                        value: 'Export',
+                        label: '导出'
+                    }, {
+                        value: 'Import',
+                        label: '导入'
+                    }, {
+                        value: 'Audit',
+                        label: '审核'
+                    }, {
+                        value: 'Reply',
+                        label: '回复'
+                    }, {
+                        value: 'Allocation',
+                        label: '分配'
+                    }, {
+                        value: 'Select',
+                        label: '选择'
+                    }, {
+                        value: 'Upload',
+                        label: '上传'
+                    }, {
+                        value: 'Download',
+                        label: '下载'
+                    }, {
+                        value: 'Publish',
+                        label: '发布'
+                    }, {
+                        value: 'Remove',
+                        label: '移除'
+                    }, {
+                        value: 'AddChild',
+                        label: '添加子内容'
+                    }],
+                    rules: {
+                        Title: [
+                            { required: true, message: '请输入权限名称', trigger: 'blur' }
+                        ],
+                        PermissionValue: [
+                            { required: true, message: '请输入权限值', trigger: 'blur' }
+                        ]
+                    }
+                }
+            },
+            created() {
+                this.$http.get('/SystemManage/Permission/GetMenus', {before: function () { this.loadingDatas = true }}).then((res) => {
+                    this.$set(this, 'modules', res.json());
+                    this.openModules = Array.from(this.modules, s => s.Id);
+                    this.loadingDatas = false;
+                }).catch((res) => {
+                    this.$message({
+                        type: 'error',
+                        center: true,
+                        message: '模块获取失败',
+                        onClose: function () {
+                            vm.loadingDatas = false;
+                        }
+                    });
+                });
+            },
+            methods: {
+                selectModule(GUID) {
+                    this.selectModuleGuid = GUID;
+                    this.getData();
+                },
+                getData() {
+                    this.$http.post('/SystemManage/Permission/GetAllAsync', { Module_GUID: this.selectModuleGuid }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        this.$set(this, 'tableData', res.json());
+                        this.$nextTick(() => {
+                            vm.checkPermission();
+                            vm.loadingDatas = false;
+                        });
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '权限获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handleNew() {
+                    this.Model.Module_GUID = this.selectModuleGuid;
+                    this.dialogFormVisible = true;
+                },
+                handleEdit(row) {
+                    this.Model = row;                    
+                    this.dialogFormVisible = true;
+                },
+                handleChange(value) {
+                    if (value !== '') {
+                        this.Model.Title = this.options.filter(p => p.value === value)[0].label;
+                    } else { this.Model.Title = null; }
+
+                },
+                handleDelete(row) {
+                    this.multipleSelection.push(row);
+                    this.handleDeletes();
+                },
+                handleDeletes() {
+                    if (this.multipleSelection.length == 0) {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '请选择要删除的模块'
+                        });
+
+                    } else {
+                        this.$confirm('此操作将永久删除该数据, 是否继续?', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            this.$prompt('敏感操作：请输入您的二级密码', {
+                                inputType: 'password',
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                                inputErrorMessage: '请输入二级密码'
+                            }).then(({ value }) => {
+                                this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                    emulateJSON: true
+                                }).then((res) => {
+                                    let data = res.json();
+                                    if (data.success) {
+                                        this.$http.post('/SystemManage/Permission/Deletes', { values: Array.from(this.multipleSelection, s => s.GUID) }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                            let data = res.json();
+                                            if (data.success) {
+                                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                    this.$message({
+                                                        type: 'success',
+                                                        center: true,
+                                                        message: data.message,
+                                                        onClose: function () {
+                                                            vm.getData();
+                                                        }
+                                                    });
+                                                } else { location.href = data.returnUrl; }
+                                            } else {
+                                                this.$message({
+                                                    type: 'error',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.loadingDatas = false;
+                                                    }
+                                                });
+                                            }
+                                            this.multipleSelection = [];
+                                        }).catch((res) => {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: '操作失败',
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                            this.multipleSelection = [];
+                                        });
+
+                                    } else {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '验证失败'
+                                        });
+                                    }
+                                }).catch((res) => {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                });
+                            }).catch(() => {
+                                this.$message({
+                                    type: 'info',
+                                    center: true,
+                                    message: '取消操作'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+                    }
+                    this.multipleSelection = [];
+                },
+                handleSelectionChange(val) {
+                    this.multipleSelection = val;
+                }, refreshModel() {
+                    this.Model = {
+                        GUID: null,
+                        Module_GUID: null,
+                        Title: null,
+                        PermissionValue: null,
+                        DisplayOrder: 0,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null
+                    };
+                },
+                submitForm(formName) {
+                    this.$refs[formName].validate((valid) => {
+                        if (valid) {
+                            this.$http.post('/SystemManage/Permission/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                                emulateJSON: true, before: function () {
+                                    this.loading = true;                                    
+                                }
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    if (data.returnUrl === null || data.returnUrl === undefined) {
+                                        this.$message({
+                                            type: 'success',
+                                            center: true,
+                                            message: data.message,
+                                            onClose: function () {
+                                                vm.loading = false;
+                                                vm.dialogFormVisible = false;
+                                                vm.getData();
+                                            }
+                                        });
+                                    } else { location.href = data.returnUrl; }
+                                } else {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.loading = false;
+                                            vm.dialogFormVisible = false;
+                                        }
+                                    });
+                                }
+                            }).catch((res) => {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '系统超时'
+                                });
+                                this.loading = false;
+                            });
+                        } else {
+                            return false;
+                        }
+                    });
+                }
+            }
+        };
+    </script>
+}

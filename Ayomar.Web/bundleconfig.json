@@ -1,0 +1,32 @@
+[
+  {
+    "outputFileName": "wwwroot/css/systemmanage/login.min.css",
+    "inputFiles": [
+      "wwwroot/css/systemmanage/login.css"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/systemmanage/validateaccount.min.js",
+    "inputFiles": [
+      "wwwroot/js/systemmanage/validateaccount.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/js/plugins/jquery.thooClock.min.js",
+    "inputFiles": [
+      "wwwroot/js/plugins/jquery.thooClock.js"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/css/systemmanage/menus.min.css",
+    "inputFiles": [
+      "wwwroot/css/systemmanage/menus.css"
+    ]
+  },
+  {
+    "outputFileName": "wwwroot/css/systemmanage/app.min.css",
+    "inputFiles": [
+      "wwwroot/css/systemmanage/app.css"
+    ]
+  }
+]

@@ -1,0 +1,135 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to use AyomarManage</title>
+    <link href="/lib/element/css/index.css" rel="stylesheet" />
+    <link href="/lib/icons/css/iconfont.css" rel="stylesheet" />
+</head>
+<body>
+    <el-container class="ayomar-h-full" id="app">
+        <el-header height="50px">
+            <el-menu class="ayomar-horizontal" mode="horizontal">
+                <el-menu-item index="0" class="logo" :style="isCollapse?'width:64px;':'width:200px;'"><a href="/"><img src="/images/commons/am_menus_top.png" style="width:45px;" v-if="isCollapse"><img class="hidden-folded m-l-xs" src="~/images/commons/am_menus_top_title.png" style="max-height:50px;" v-else /></a></el-menu-item>
+                <el-menu-item index="1"><a @@click="isCollapse = !isCollapse"><i class="el-icon-menu"></i></a></el-menu-item>
+                <el-submenu index="2">
+                    <template slot="title">
+                        我的工作台
+                    </template>
+                    <el-submenu :index="space.Id" v-for="space in Menus" style="float:none;" :key="space.Id">
+                        <template slot="title">
+                            {{space.Title}}
+                        </template>
+                        <el-submenu :index="manage.Id" v-for="manage in space.Menus" style="float:none;" :key="manage.Id">
+                            <template slot="title">
+                                <i :class="manage.Icon"></i> {{manage.Title}}
+                            </template>
+                            <el-menu-item :index="item.Id" v-for="item in manage.Items" :key="item.Id" style="float:none;"><a @@click="openLink(item.url)" v-text="item.Title"></a></el-menu-item>
+                        </el-submenu>
+                    </el-submenu>
+                </el-submenu>
+                <el-submenu index="3" style="float:right">
+                    <template slot="title">
+                        <i class="iconfont icon-yonghu" style="font-size:20px;color:#23b7e5"></i>
+                    </template>
+                    <el-menu-item index="3-1"><a href="/SystemManage/Account">用户中心</a><i class="iconfont icon-yonghu" style="margin-left:15px;"></i></el-menu-item>
+                    <el-menu-item index="3-2"><a href="/SystemManage/Account">修改密码</a><i class="iconfont icon-suo" style="margin-left:15px;"></i></el-menu-item>
+                    <el-menu-item index="3-3"><a href="/SystemManage/Account">二级密码</a><i class="iconfont icon-security" style="margin-left:15px;"></i></el-menu-item>
+                    <el-menu-item index="3-4"><a href="/SystemManage/Account">安全退出</a><i class="iconfont icon-exit" style="margin-left:15px;"></i></el-menu-item>
+                </el-submenu>
+                <el-menu-item index="4" style="float:right"><i class="el-icon-time" style="color:#ec0c72"></i><span v-text="timeNow"></span></el-menu-item>
+            </el-menu>           
+        </el-header>
+        <el-container>
+            <el-aside :width="isCollapse?'64px':'200px'" style="background-color:rgb(58, 63, 81)">
+                <el-row>
+                    <el-col>
+                        <el-menu class="ayomarMenus"
+                                 :unique-opened="true"
+                                 :collapse="isCollapse"
+                                 :default-active="defaultActive">
+
+                            <div v-for="space in Menus" :key="space.Id">
+                                <div class="ayomarSpaceTitle" v-text="space.Title"></div>
+                                <el-submenu :index="manage.Id" v-for="manage in space.Menus" :key="manage.Id">
+                                    <template slot="title">
+                                        <i :class="manage.Icon"></i>
+                                        <span v-text="manage.Title"></span>
+                                    </template>
+                                    <el-menu-item :index="item.Id" v-for="item in manage.Items" :key="item.Id"><a @@click="openLink(item.url)" v-text="item.Title"></a></el-menu-item>
+                                </el-submenu>
+                            </div>
+                        </el-menu>
+                    </el-col>
+                </el-row>
+            </el-aside>
+            <el-main v-loading="loadingDatas">
+                @RenderBody()
+            </el-main>
+        </el-container>
+    </el-container>
+</body>
+</html>
+<script src="/lib/vue/lib/vue.min.js"></script>
+<script src="/lib/vue/lib/vue-resource.min.js"></script>
+<script src="/lib/element/js/index.js"></script>
+@RenderSection("Scripts", required: false)
+<script>
+    const [...permissions] = @Html.Raw(ViewContext.HttpContext.Items["PermissJson"]);      
+    var vm = new Vue({
+        el: '#app',       
+        data() {
+            return {
+                Menus: [],
+                isCollapse: false,           
+                defaultActive: '',
+                loadingDatas: false,
+                timeNow:''
+            }
+        },
+        created() {
+            if (localStorage.getItem("menus") === null) {
+                this.$http.get("/SystemManage/Home/GetManageMenus")
+                    .then((res) => {
+                        this.$set(this, 'Menus', res.json());
+                        localStorage.setItem("menus", res.data);
+                    });
+            } else {
+                this.$set(this, 'Menus', JSON.parse(localStorage.getItem("menus")));
+            }
+            let url = window.location.href.split("/");
+            let value = url[url.length - 1].includes('?') ? url[url.length - 1].split("?")[0] : url[url.length - 1];
+            value = value.replace(/\b[a-z]/g, char => char.toUpperCase())
+            this.defaultActive = value;
+            if (localStorage.getItem("isCollapse") !== null) {
+                this.isCollapse = localStorage.getItem("isCollapse") === 'true';
+            }
+            setInterval(function () { vm.timeNow = new Date().toLocaleString(); }, 1000);
+        },
+        methods: {
+            openLink(url) {
+                window.location.href = url;
+            },
+            checkPermission() {
+                document.querySelectorAll("main button").forEach((node) => {
+                    if (node.getAttribute("action") !== null) {
+                        if (!permissions.includes(node.getAttribute("action").toLowerCase())) {
+                            node.remove();
+                        }
+                    }
+                });
+            },
+            refreshPage() {
+                location.reload();
+            }
+        },
+        watch: {
+            isCollapse: function (val) {
+                localStorage.setItem("isCollapse", val);
+            }
+
+        },
+        mixins: [mixin]
+    });
+</script>

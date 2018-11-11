@@ -1,0 +1,38 @@
+﻿body {
+    padding: 0;
+    margin: 0;
+    color: #212121;
+    background-color: #0cdab4;
+    font-family: roboto,arial,sans-serif;
+}
+#login {
+    position: absolute;
+    width: 100%;
+    height: 650px;
+    top: 50%;
+    margin-top: -325px;
+}
+
+.ayomarInput input {
+    width: 100%;
+    line-height: 35px;
+    font-size: 18px;
+    padding: 0 8px;
+    border-radius: 5px;
+    border: 2px solid #13b799;
+    letter-spacing: 2px;
+    color: #037560
+}
+
+    input[type='password'] {
+        letter-spacing: 15px
+    }
+
+.el-form-item__label {
+    padding: 8px 0;
+    color: #fff;
+    font-size: 18px;
+}
+.ayomarInput input:hover, .ayomarInput input:focus, .ayomarInput input:active {
+    border: 2px solid #13b799;
+}

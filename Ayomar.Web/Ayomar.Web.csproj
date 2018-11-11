@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="wwwroot\lib\icons\新文件夹\**" />
+    <Content Remove="wwwroot\lib\icons\新文件夹\**" />
+    <EmbeddedResource Remove="wwwroot\lib\icons\新文件夹\**" />
+    <None Remove="wwwroot\lib\icons\新文件夹\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ayomar.Service\Ayomar.Service.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Areas\Components\Controllers\" />
+    <Folder Include="wwwroot\images\icons\" />
+    <Folder Include="wwwroot\js\plugins\" />
+    <Folder Include="wwwroot\js\systemmanage\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Views\Shared\_LayoutManageFrame.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
+    </Content>
+    <Content Update="Views\Shared\_LayoutManage.cshtml">
+      <Pack>$(IncludeRazorContentInPack)</Pack>
+    </Content>
+  </ItemGroup>
+
+</Project>

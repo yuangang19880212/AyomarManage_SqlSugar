@@ -1,0 +1,457 @@
+﻿@{
+}
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+    <el-breadcrumb-item>系统配置</el-breadcrumb-item>
+    <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" size="small" :loading="loading" round style="float:right">保存配置</el-button>
+</el-breadcrumb>
+<template>
+    <el-form :model="Model" :inline="true" ref="form">
+        @Html.AntiForgeryToken()
+        <el-tabs type="card" value="first">
+            <el-tab-pane label="文件上传配置" name="first">
+                <el-form-item label="文件上传路径" label-width="100px" label-position="right">
+                    <el-input v-model="Model.FileUpPath" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="文件上传域名" label-width="100px" label-position="right">
+                    <el-input v-model="Model.FileDomain" autocomplete="off"></el-input>
+                </el-form-item>
+                <br />
+                <el-form-item label="图像格式" label-width="100px" label-position="right">
+                    <el-checkbox-group v-model="AttachImageExtension">
+                        <el-checkbox label="gif">GIF</el-checkbox>
+                        <el-checkbox label="jpg">JPG</el-checkbox>
+                        <el-checkbox label="jpeg">JPEG</el-checkbox>
+                        <el-checkbox label="png">PNG</el-checkbox>
+                        <el-checkbox label="bmp">BMP</el-checkbox>
+                    </el-checkbox-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="视频格式" label-width="100px" label-position="right">
+                    <el-checkbox-group v-model="AttachVideoExtension">
+                        <el-checkbox label="flv">FLV</el-checkbox>
+                        <el-checkbox label="mov">MOV</el-checkbox>
+                        <el-checkbox label="mp4">MP4</el-checkbox>
+                        <el-checkbox label="mpg">MPG</el-checkbox>
+                        <el-checkbox label="ts">TS</el-checkbox>
+                        <el-checkbox label="mpeg">MPEG</el-checkbox>
+                    </el-checkbox-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="音频格式" label-width="100px" label-position="right">
+                    <el-checkbox-group v-model="AttachAudioExtension">
+                        <el-checkbox label="mp3">MP3</el-checkbox>
+                    </el-checkbox-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="文档格式" label-width="100px" label-position="right">
+                    <el-checkbox-group v-model="AttachDocumentExtension">
+                        <el-checkbox label="doc">DOC</el-checkbox>
+                        <el-checkbox label="docx">DOCX</el-checkbox>
+                        <el-checkbox label="xls">XLS</el-checkbox>
+                        <el-checkbox label="xlsx">XLSX</el-checkbox>
+                        <el-checkbox label="ppt">PPT</el-checkbox>
+                        <el-checkbox label="pptx">PPTX</el-checkbox>
+                        <el-checkbox label="txt">TXT</el-checkbox>
+                        <el-checkbox label="pdf">PDF</el-checkbox>
+                    </el-checkbox-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="文件格式" label-width="100px" label-position="right">
+                    <el-checkbox-group v-model="AttachFileExtension">
+                        <el-checkbox label="rar">RAR</el-checkbox>
+                        <el-checkbox label="zip">ZIP</el-checkbox>
+                        <el-checkbox label="bak">BAK</el-checkbox>
+                        <el-checkbox label="apk">APK</el-checkbox>
+                    </el-checkbox-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="图像最大值" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.AttachImagesize"
+                               :min="0"
+                               :max="2048"
+                               :format-tooltip="formatTooltip"
+                               :step="10" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="视频最大值" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.AttachVideosize"
+                               :min="0"
+                               :max="2097152"
+                               :format-tooltip="formatTooltip"
+                               :step="10" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="音频最大值" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.AttachAudiosize"
+                               :min="0"
+                               :max="2097152"
+                               :format-tooltip="formatTooltip"
+                               :step="10" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="文档最大值" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.AttachDocumentsize"
+                               :min="0"
+                               :max="1024"
+                               :format-tooltip="formatTooltip"
+                               :step="10" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="文件最大值" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.AttachFilesize"
+                               :min="0"
+                               :max="10240"
+                               :format-tooltip="formatTooltip"
+                               :step="10" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+            </el-tab-pane>
+            <el-tab-pane label="缩略图水印配置" name="second">
+                <el-form-item label="生成缩率图" label-width="100px" label-position="right">
+                    <el-switch v-model="Model.IsThumb">
+                    </el-switch>
+                </el-form-item>
+                <el-form-item label="等比缩放" label-width="100px" label-position="right">
+                    <el-switch v-model="Model.IsEqualProportion">
+                    </el-switch>
+                </el-form-item>
+                <br />
+                <el-form-item label="缩率图大小" label-width="100px" label-position="right">
+                    <el-col :span="11">
+                        <el-form-item>
+                            <el-input v-model.number="Model.ThumbnailMaxWidth" autocomplete="off"></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col class="line" :span="2">-</el-col>
+                    <el-col :span="11">
+                        <el-form-item>
+                            <el-input v-model.number="Model.ThumbnailMaxHeight" autocomplete="off"></el-input>
+                        </el-form-item>
+                    </el-col>
+                </el-form-item>
+                <br />
+                <el-form-item label="是否加水印" label-width="100px" label-position="right">
+                    <el-switch v-model="Model.IsWatermark">
+                    </el-switch>
+                </el-form-item>
+                <el-form-item label="" label-position="right">
+                    <el-radio-group v-model="Model.IsWaterPic">
+                        <el-radio :label="true">图片水印</el-radio>
+                        <el-radio :label="false">文字水印</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="水印文字" label-width="100px" label-position="right">
+                    <el-input v-model="Model.FileUpPath" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="水印图片" label-width="100px" label-position="right">
+                    <el-input v-model="Model.WatermarkPic" autocomplete="off"></el-input>
+                </el-form-item>
+                <br />
+                <el-form-item label="水印位置" label-width="100px" label-position="right">
+                    <el-select v-model="Model.WatermarkPosition" placeholder="请选择">
+                        <el-option :value="0" label="不使用"></el-option>
+                        <el-option :value="1" label="左上"></el-option>
+                        <el-option :value="2" label="中上"></el-option>
+                        <el-option :value="3" label="右上"></el-option>
+                        <el-option :value="4" label="左中"></el-option>
+                        <el-option :value="9" label="右下"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="水印字体" label-width="100px" label-position="right">
+                    <el-select v-model="Model.WatermarkFont" placeholder="请选择">
+                        <el-option value="Arial" label="Arial"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="水印大小" label-width="100px" label-position="right">
+                    <el-select v-model="Model.WatermarkFontsize" placeholder="请选择">
+                        <el-option :value="5" label="5px"></el-option>
+                        <el-option :value="10" label="10px"></el-option>
+                        <el-option :value="15" label="15px"></el-option>
+                        <el-option :value="20" label="20px"></el-option>
+                        <el-option :value="25" label="25px"></el-option>
+                        <el-option :value="30" label="30px"></el-option>
+                    </el-select>
+                </el-form-item>
+                <br />
+                <el-form-item label="水印质量" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.WatermarkImgQuality"
+                               :min="0"
+                               :max="100"
+                               :step="10" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="水印透明度" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.WatermarkTransparency"
+                               :min="0"
+                               :max="10"
+                               :step="1" style="width:800px">
+                    </el-slider>
+                </el-form-item>
+            </el-tab-pane>
+            <el-tab-pane label="图像识别配置" name="third">
+                <el-form-item label="图像审核" label-width="100px" label-position="right">
+                    <el-switch v-model="Model.IsSencorImage">
+                    </el-switch>
+                </el-form-item>
+                <el-form-item label="" label-position="right">
+                    <el-radio-group v-model="Model.IsIsStrictModel">
+                        <el-radio :label="true">严格模式</el-radio>
+                        <el-radio :label="false">标准模式</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <br />
+                <el-form-item label="色情识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.Pornography"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="性感识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.SexyRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="暴恐识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.TerrorIdentification"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="恶心识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.NauseaRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="水印码识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.WatermarkRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="二维码识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.TwoDimensionalCodeRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="条形码识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.ShopSavvyBarcodeScanner"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="政治人物" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.PoliticalCharacterRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="敏感词识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.RecognitionOfSensitiveWords"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="公众人物" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.PublicFigureRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+                <br />
+                <el-form-item label="自定义识别" label-width="100px" label-position="right">
+                    <el-slider v-model="Model.CustomRecognition"
+                               :min="0"
+                               :max="1"
+                               style="width:800px">
+                    </el-slider>
+                </el-form-item>
+            </el-tab-pane>
+            <el-tab-pane label="Ayomar接口配置" name="fourth">
+                <el-form-item label="APP_ID" label-width="100px" label-position="right">
+                    <el-input v-model="Model.Baidu_APP_ID" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="APP_KEY" label-width="100px" label-position="right">
+                    <el-input v-model="Model.Baidu_API_KEY" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="APP_SECRET" label-width="100px" label-position="right">
+                    <el-input v-model="Model.Baidu_SECRET_KEY" autocomplete="off"></el-input>
+                </el-form-item>
+                <br />
+                <el-form-item label="本机IP" label-width="100px" label-position="right">
+                    <el-input v-model="Model.RemoteIpAddress" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="TCP 端口" label-width="100px" label-position="right">
+                    <el-input v-model="Model.TcpPort" autocomplete="off"></el-input>
+                </el-form-item>
+                <br />
+                <el-form-item label="RabbitMQ用户名" label-width="170px" label-position="right">
+                    <el-input v-model="Model.Rabbit_UserName" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="RabbitMQ密码" label-width="170px" label-position="right">
+                    <el-input v-model="Model.Rabbit_Password" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="RabbitMQ主机IP" label-width="170px" label-position="right">
+                    <el-input v-model="Model.Rabbit_HostName" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="RabbitMQ端口号" label-width="170px" label-position="right">
+                    <el-input v-model="Model.Rabbit_Port" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="RabbitMQ HTTP端口号" label-width="170px" label-position="right">
+                    <el-input v-model="Model.Rabbit_HttpPort" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-tab-pane>
+        </el-tabs>
+    </el-form>
+    
+</template>
+@section scripts{
+<script>
+    var mixin = {
+        data() {
+            return {
+                Model: Object,
+                AttachImageExtension: [],
+                AttachVideoExtension: [],
+                AttachAudioExtension: [],
+                AttachDocumentExtension: [],
+                AttachFileExtension: [],
+                loading: false
+            }
+        },
+        created() {
+            this.$http.get('/SystemManage/System/GetAsync').then((res) => {
+                this.$set(this, 'Model', res.json());
+                this.AttachImageExtension = this.Model.AttachImageExtension.split(',');
+                this.AttachVideoExtension = this.Model.AttachVideoExtension.split(',');
+                this.AttachAudioExtension = this.Model.AttachAudioExtension.split(',');
+                this.AttachDocumentExtension = this.Model.AttachDocumentExtension.split(',');
+                this.AttachFileExtension = this.Model.AttachFileExtension.split(',');
+            }).catch((res) => {
+                this.$message({
+                    type: 'error',
+                    center: true,
+                    message: '系统配置获取失败'
+                });
+            });
+        },
+        methods: {
+            formatTooltip(val) {
+                return val + " KB";
+            },
+            submitForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        this.$prompt('敏感操作：请输入您的二级密码', {
+                            inputType: 'password',
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                            inputErrorMessage: '请输入二级密码'
+                        }).then(({ value }) => {
+                            this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                emulateJSON: true
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    this.Model.AttachImageExtension = this.AttachImageExtension.join();
+                                    this.Model.AttachVideoExtension = this.AttachVideoExtension.join();
+                                    this.Model.AttachAudioExtension = this.AttachAudioExtension.join();
+                                    this.Model.AttachDocumentExtension = this.AttachDocumentExtension.join();
+                                    this.Model.AttachFileExtension = this.AttachFileExtension.join();
+                                    this.$http.post('/SystemManage/System/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                                        emulateJSON: true, before: function () {
+                                            this.loading = true;
+                                        }
+                                    }).then((res) => {
+                                        let data = res.json();
+                                        if (data.success) {
+                                            if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                this.$message({
+                                                    type: 'success',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        location.reload();
+                                                    }
+                                                });
+                                            } else { location.href = data.returnUrl; }
+                                        } else {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: data.message
+                                            });
+                                        }
+                                        this.loading = false;
+                                    }).catch((res) => {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '系统超时'
+                                        });
+                                        this.loading = false;
+                                    });
+
+                                } else {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                }
+                            }).catch((res) => {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '验证失败'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+        
+                    } else {
+                        return false;
+                    }
+                });
+            }
+
+        }
+    }
+    </script>
+}

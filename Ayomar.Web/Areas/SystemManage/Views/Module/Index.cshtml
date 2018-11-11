@@ -1,0 +1,408 @@
+﻿@{
+}
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+    <el-breadcrumb-item>模块管理</el-breadcrumb-item>
+</el-breadcrumb>
+<template>
+    <el-table :data="tableData"
+              border
+              header-cell-class-name="table-header"
+              @@selection-change="handleSelectionChange"
+              style="width: 100%">
+        <el-table-column type="selection"
+                         align="center"
+                         width="55">
+        </el-table-column>
+        <el-table-column label="模块名称">
+            <template slot-scope="scope">
+                <img src="/images/commons/drop_right.png" v-if="scope.row.Levels>0" :style="'margin-left:'+scope.row.Levels*20+'px'" />
+                <span v-text="scope.row.Title"></span>
+            </template>
+        </el-table-column>
+        <el-table-column prop="Alias"
+                         align="center"
+                         label="模块别名">
+        </el-table-column>
+        <el-table-column prop="Levels"
+                         align="center"
+                         :filters="[{text: '一级模块', value: 0}, {text: '二级模块', value: 1}, {text: '三级模块', value: 2}]"
+                         :filter-method="filterLevels"
+                         label="级别">
+        </el-table-column>
+        <el-table-column prop="ModulePath"
+                         align="center"
+                         label="模块地址">
+        </el-table-column>
+        <el-table-column :filters="[{text: '显示', value: true}, {text: '隐藏', value: false}]"
+                         :filter-method="filterStatus"
+                         align="center"
+                         prop="IsDisplay"
+                         label="显示状态">
+            <template slot-scope="scope">
+                <i class="el-icon-check el-button--text" v-if="scope.row.IsDisplay"></i>
+                <i class="el-icon-close" v-else></i>
+            </template>
+        </el-table-column>
+        <el-table-column prop="DisplayOrder"
+                         sortable
+                         align="center"
+                         label="显示顺序">
+        </el-table-column>
+        <el-table-column align="center"
+                         width="240">
+            <template slot="header" slot-scope="slot">
+                <el-dropdown :hide-on-click="false">
+                    <span class="el-dropdown-link">
+                        操作 <i class="el-icon-arrow-down el-icon--right"></i>
+                    </span>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item align="center"><el-button type="text" icon="el-icon-circle-plus-outline" action="save" @@click="handleNew">新增数据</el-button></el-dropdown-item>
+                        <el-dropdown-item align="center"><el-button type="text" icon="el-icon-delete" action="delete" @@click="handleDeletes">删除数据</el-button></el-dropdown-item>
+                        <el-dropdown-item align="center"><el-button type="text" icon="el-icon-refresh" @@click="refreshPage">刷新页面</el-button></el-dropdown-item>
+                        <el-dropdown-item divided>
+                            <el-input v-model="search"
+                                      size="mini"
+                                      placeholder="search...">
+                                <i class="el-icon-search el-input__icon"
+                                   slot="suffix"
+                                   @@click="getData">
+                                </i>
+                            </el-input>
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+            </template>
+            <template slot-scope="scope">
+                <el-button size="mini"
+                           @@click="handleEdit(scope.row)" icon="el-icon-edit" action="save">编辑</el-button>
+                <el-button size="mini"
+                           type="danger"
+                           @@click="handleDelete(scope.row)" icon="el-icon-delete" action="delete">删除</el-button>
+                <el-tooltip class="item" effect="dark" content="添加子模块" placement="top-end" v-if="scope.row.Levels<2">
+                    <el-button size="mini"
+                               type="primary"
+                               @@click="handleAddChild(scope.row)" action="addchild"><i class="el-icon-plus"></i></el-button>
+                </el-tooltip>
+                <el-button size="mini"
+                           type="primary" action="addchild" disabled v-else><i class="el-icon-plus"></i></el-button>
+            </template>
+        </el-table-column>
+    </el-table>
+    <el-dialog title="" :visible.sync="dialogFormVisible" width="700px" @@closed="refreshModel" :close-on-click-modal="false">
+        <el-form :model="Model" :rules="rules" ref="form">
+            @Html.AntiForgeryToken()
+            <el-form-item label="上级模块" label-width="100px" label-position="right" prop="Parent_GUID">
+                <el-cascader :options="options" placeholder="请选择上级模块" v-model="cascaderParent"
+                             @@change="handleChange"
+                             change-on-select></el-cascader>
+            </el-form-item>
+            <el-col :span="12">
+                <el-form-item label="模块名称" label-width="100px" label-position="right" prop="Title">
+                    <el-input v-model="Model.Title" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-col>
+            <el-col :span="12">
+                <el-form-item label="模块别名" label-width="100px" label-position="right" prop="Alias">
+                    <el-input v-model="Model.Alias" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-col>
+            <el-col :span="12">
+                <el-form-item label="是否显示" label-width="100px" label-position="right">
+                    <el-switch v-model="Model.IsDisplay">
+                    </el-switch>
+                </el-form-item>
+            </el-col>
+            <el-col :span="12">
+                <el-form-item label="显示顺序" label-width="100px" label-position="right">
+                    <el-input-number v-model="Model.DisplayOrder" controls-position="right" :min="0" :max="50"></el-input-number>
+                </el-form-item>
+            </el-col>
+            <el-col :span="24">
+                <el-form-item label="模块图标" label-width="100px" label-position="right">
+                    <el-input v-model="Model.Icon" autocomplete="off" style="width:300px;"></el-input>
+                </el-form-item>
+                <el-form-item label="模块路径" label-width="100px" label-position="right">
+                    <el-input v-model="Model.ModulePath" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-col>
+        </el-form>
+        <div slot="footer" class="dialog-footer" style="text-align:center">
+            <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" :loading="loading">确 定</el-button>
+            <el-button @@click="dialogFormVisible = false" icon="el-icon-error" v-if="!loading">取 消</el-button>
+        </div>
+    </el-dialog>
+</template>
+@section scripts{
+    <script>
+        var mixin = {
+            data() {
+                return {
+                    tableData: [],
+                    Model: {
+                        GUID: null,
+                        Alias: null,
+                        CreateDate: null,
+                        CreateUser: null,
+                        DisplayOrder: 0,
+                        GUID: null,
+                        Icon: null,
+                        IsDisplay: true,
+                        Levels: 0,
+                        ModulePath: null,
+                        Parent_GUID: null,
+                        Title: null,
+                        UpdateDate: null,
+                        UpdateUser: null
+                    },
+                    multipleSelection: [],
+                    dialogFormVisible: false,
+                    loading: false,
+                    search: '',
+                    options: [],
+                    cascaderParent: [],
+                    rules: {
+                        Title: [
+                            { required: true, message: '请输入模块名称', trigger: 'blur' }
+                        ],
+                        Parent_GUID: [
+                            { required: true, message: '请选择上级模块', trigger: 'change' }
+                        ],
+                        Alias: [
+                            { required: true, message: '请输入模块别名', trigger: 'blur' }
+                        ]
+                    }
+                }
+            },
+            created() {
+                this.getData();
+            },
+            methods: {
+                getData() {
+                    this.$http.post('/SystemManage/Module/GetAllAsync', { keyWords: this.search }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        this.$set(this, 'tableData', res.json());
+                        this.$nextTick(() => {
+                            this.options = [{ value: '00000000-0000-0000-0000-000000000000', label: '一级模块' }];
+                            for (let item of this.tableData.filter(p => { return p.Levels === 0 }).values()) {
+                                let first = { value: item.GUID, label: item.Title, children: [] };
+                                for (let second of this.tableData.filter(p => { return p.Levels === 1 }).values()) {
+                                    first.children.push({ value: second.GUID, label: second.Title });
+                                }
+                                this.options.push(first);
+                            }
+                            vm.checkPermission();
+                        });
+                        this.loadingDatas = false;
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '模块获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handleNew() {
+                    this.dialogFormVisible = true;
+                },
+                handleEdit(row) {
+                    this.Model = row;
+                    if (this.Model.Levels == 0 || this.Model.Levels == 1) { this.cascaderParent.push(this.Model.Parent_GUID); }
+                    else {
+                        let Parent = this.tableData.filter(p => { return p.GUID === this.Model.Parent_GUID })[0];
+                        this.cascaderParent.push(Parent.Parent_GUID);
+                        this.cascaderParent.push(Parent.GUID);
+                    }
+                    this.dialogFormVisible = true;
+                },
+                handleDelete(row) {
+                    this.multipleSelection.push(row);
+                    this.handleDeletes();
+                },
+                handleDeletes() {
+                    if (this.multipleSelection.length == 0) {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '请选择要删除的模块'
+                        });
+
+                    } else {
+                        this.$confirm('此操作将永久删除该数据, 是否继续?', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            this.$prompt('敏感操作：请输入您的二级密码', {
+                                inputType: 'password',
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                                inputErrorMessage: '请输入二级密码'
+                            }).then(({ value }) => {
+                                this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                    emulateJSON: true
+                                }).then((res) => {
+                                    let data = res.json();
+                                    if (data.success) {
+                                        this.$http.post('/SystemManage/Module/Deletes', { values: Array.from(this.multipleSelection, s => s.GUID) }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                            let data = res.json();
+                                            if (data.success) {
+                                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                    this.$message({
+                                                        type: 'success',
+                                                        center: true,
+                                                        message: data.message,
+                                                        onClose: function () {
+                                                            vm.getData();
+                                                        }
+                                                    });
+                                                } else { location.href = data.returnUrl; }
+                                            } else {
+                                                this.$message({
+                                                    type: 'error',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.loadingDatas = false;
+                                                    }
+                                                });
+                                            }
+                                            this.multipleSelection = [];
+                                        }).catch((res) => {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: '操作失败',
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                            this.multipleSelection = [];
+                                        });
+
+                                    } else {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '验证失败'
+                                        });
+                                    }
+                                }).catch((res) => {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                });
+                            }).catch(() => {
+                                this.$message({
+                                    type: 'info',
+                                    center: true,
+                                    message: '取消操作'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+                    }
+                    this.multipleSelection = [];
+                },
+                handleAddChild(row) {
+                    this.Model.Parent_GUID = row.GUID;
+                    if (row.Levels == 0) { this.cascaderParent.push(row.GUID); }
+                    else { this.cascaderParent.push(row.Parent_GUID); this.cascaderParent.push(row.GUID); }
+                    this.dialogFormVisible = true;
+                },
+                filterStatus(value, row) {
+                    return row.IsDisplay === value;
+                },
+                filterLevels(value, row) {
+                    return row.Levels === value;
+                },
+                handleSelectionChange(val) {
+                    this.multipleSelection = val;
+                },
+                handleChange(value) {
+                    this.Model.Parent_GUID = value[value.length - 1];
+                },
+                submitForm(formName) {
+                    this.$refs[formName].validate((valid) => {
+                        if (valid) {
+                            this.$http.post('/SystemManage/Module/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                                emulateJSON: true, before: function () {
+                                    this.loading = true;
+                                }
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    if (data.returnUrl === null || data.returnUrl === undefined) {
+                                        this.$message({
+                                            type: 'success',
+                                            center: true,
+                                            message: data.message,
+                                            onClose: function () {
+                                                vm.loading = false;
+                                                vm.dialogFormVisible = false;
+                                                vm.getData();
+                                            }
+                                        });
+                                    } else { location.href = data.returnUrl; }
+                                } else {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.loading = false;
+                                            vm.dialogFormVisible = false;
+                                        }
+                                    });
+                                }
+                            }).catch((res) => {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '系统超时'
+                                });
+                                this.loading = false;
+                            });
+                        } else {
+                            return false;
+                        }
+                    });
+                },
+                refreshModel() {
+                    this.Model = {
+                        GUID: null,
+                        Alias: null,
+                        CreateDate: null,
+                        CreateUser: null,
+                        DisplayOrder: 0,
+                        GUID: null,
+                        Icon: null,
+                        IsDisplay: true,
+                        Levels: 0,
+                        ModulePath: null,
+                        Parent_GUID: null,
+                        Title: null,
+                        UpdateDate: null,
+                        UpdateUser: null
+                    };
+                    this.cascaderParent = [];
+                }
+            }
+        };
+
+    </script>
+}

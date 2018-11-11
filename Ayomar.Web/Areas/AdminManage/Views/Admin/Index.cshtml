@@ -1,0 +1,747 @@
+﻿@{
+}
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
+    <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+    <el-breadcrumb-item>系统用户</el-breadcrumb-item>
+</el-breadcrumb>
+<el-table :data="tableData"
+          border
+          header-cell-class-name="table-header"
+          @@selection-change="handleSelectionChange"
+          style="width: 100%">
+    <el-table-column type="selection"
+                     align="center"
+                     width="55">
+    </el-table-column>
+    <el-table-column type="expand">
+        <template slot-scope="props">
+            <el-form label-position="left" inline class="table-expand">
+                <el-form-item label="登录账号">
+                    <span>{{ props.row.Account }}</span>
+                </el-form-item>
+                <el-form-item label="用户名">
+                    <span>{{ props.row.UserName }}</span>
+                </el-form-item>
+                <el-form-item label="手机号码">
+                    <span>{{ props.row.Mobile }}</span>
+                </el-form-item>
+                <el-form-item label="邮箱">
+                    <span>{{ props.row.Email }}</span>
+                </el-form-item>
+                <el-form-item label="创建时间">
+                    <span>{{ props.row.CreateDate }}</span>
+                </el-form-item>
+                <el-form-item label="最后更新">
+                    <span>{{ props.row.UpdateDate }}</span>
+                </el-form-item>
+            </el-form>
+        </template>
+    </el-table-column>
+    <el-table-column prop="UserName"
+                     align="center"
+                     label="用户名">
+    </el-table-column>
+    <el-table-column prop="Account"
+                     align="center"
+                     label="登录账号">
+    </el-table-column>
+    <el-table-column :filters="[{text: '正常', value: 'true'}, {text: '锁定', value: 'false'}]"
+                     :filter-method="filterStatus"
+                     align="center"
+                     prop="IsCanLogin"
+                     label="状态">
+        <template slot-scope="scope">
+            <i class="el-icon-check el-button--text" v-if="scope.row.IsCanLogin"></i>
+            <i class="el-icon-close" v-else></i>
+        </template>
+    </el-table-column>
+    <el-table-column :filters="departments"
+                     :filter-method="filterDepartments"
+                     prop="DepartmentGuid"
+                     align="center"
+                     label="部门">
+        <template slot-scope="scope">
+            <span>{{scope.row.DepartmentName}}</span>
+        </template>
+    </el-table-column>
+    <el-table-column prop="Mobile"
+                     align="center"
+                     label="手机号码">
+    </el-table-column>
+    <el-table-column prop="UpdateDate"
+                     sortable
+                     align="center"
+                     label="最后更新">
+    </el-table-column>
+    <el-table-column align="center"
+                     width="300">
+        <template slot="header" slot-scope="slot">
+            <el-dropdown :hide-on-click="false">
+                <span class="el-dropdown-link">
+                    操作 <i class="el-icon-arrow-down el-icon--right"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-circle-plus-outline" action="save" @@click="handleNew">新增数据</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-delete" action="delete" @@click="handleDeletes">删除数据</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-goods" action="lock" @@click="handleLocks">锁定账户</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-sold-out" action="unlock" @@click="handleUnLocks">解锁账户</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-refresh" @@click="refreshPage">刷新页面</el-button></el-dropdown-item>
+                    <el-dropdown-item divided>
+                        <el-input v-model="search"
+                                  size="mini"
+                                  placeholder="search...">
+                            <i class="el-icon-search el-input__icon"
+                               slot="suffix"
+                               @@click="getData">
+                            </i>
+                        </el-input>
+                    </el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
+        </template>
+        <template slot-scope="scope">
+            <el-button size="mini"
+                       @@click="handleEdit(scope.row)" icon="el-icon-edit" action="save">编辑</el-button>
+            <el-button size="mini"
+                       type="danger"
+                       @@click="handleDelete(scope.row)" icon="el-icon-delete" action="delete">删除</el-button>
+            <el-button size="mini"
+                       type="primary"
+                       @@click="GetRoles(scope.row)" action="Allocation">分配角色<i class="el-icon-arrow-down el-icon--right"></i></el-button>
+        </template>
+    </el-table-column>
+</el-table>
+<el-pagination @@size-change="handleSizeChange"
+               @@current-change="handleCurrentChange"
+               :current-page="currentPage"
+               :page-sizes="[100, 500, 1000, 2000]"
+               :page-size="pageSize"
+               layout="total, sizes, prev, pager, next, jumper"
+               :total="total">
+</el-pagination>
+<el-dialog title="" :visible.sync="dialogFormVisible" width="500px" @@closed="refreshModel" :close-on-click-modal="false">
+    <el-form :model="Model" :rules="rules" ref="form">
+        @Html.AntiForgeryToken()
+        <el-form-item label="用户账号" label-width="100px" label-position="right" prop="Account">
+            <el-input v-model="Model.Account" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="用户姓名" label-width="100px" label-position="right">
+            <el-input v-model="Model.UserName" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="手机号码" label-width="100px" label-position="right" prop="Mobile">
+            <el-input v-model="Model.Mobile" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="所属部门" label-width="100px" label-position="right">
+            <el-select v-model="Model.DepartmentGuid" placeholder="请选择部门" @@change="handleSelectChange">
+                <el-option v-for="item in departments"
+                           :key="item.value"
+                           :label="item.text"
+                           :value="item.value">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="英文名" label-width="100px" label-position="right">
+            <el-input v-model="Model.EN_Name" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="英文(简)" label-width="100px" label-position="right">
+            <el-input v-model="Model.EN_Nme_Simple" autocomplete="off" type="password"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱" label-width="100px" label-position="right" prop="Email">
+            <el-input v-model="Model.Email" autocomplete="off"></el-input>
+        </el-form-item>
+    </el-form>
+    <div slot="footer" class="dialog-footer" style="text-align:center">
+        <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" :loading="loading">确 定</el-button>
+        <el-button @@click="dialogFormVisible = false" icon="el-icon-error" v-if="!loading">取 消</el-button>
+    </div>
+</el-dialog>
+<el-dialog title="" :visible.sync="dialogRolesVisible" width="500px" @@closed="refreshRoles" :close-on-click-modal="false">
+    <el-table ref="multipleTable"
+              :data="roles"
+              tooltip-effect="dark"
+              style="width: 100%"
+              @@selection-change="handleRoleSelectionChange">
+        <el-table-column type="selection"
+                         width="55">
+        </el-table-column>
+        <el-table-column prop="RoleName"
+                         label="角色"
+                         width="120">
+        </el-table-column>
+        <el-table-column prop="RoleExplain"
+                         label="说明"
+                         show-overflow-tooltip>
+        </el-table-column>
+    </el-table>
+    <div slot="footer" class="dialog-footer" style="text-align:center">
+        <el-button type="primary" @@click="allocation" icon="el-icon-success" :loading="loadingAllocation">确 定</el-button>
+        <el-button @@click="dialogRolesVisible = false" icon="el-icon-error" v-if="!loadingAllocation">取 消</el-button>
+    </div>
+</el-dialog>
+@section scripts{
+    <style>
+        .table-expand label {
+            width: 90px;
+            color: #99a9bf;
+        }
+
+        .table-expand label {
+            width: 90px;
+            color: #99a9bf;
+        }
+
+        .table-expand .el-form-item {
+            width: 30%;
+        }
+    </style>
+    <script>
+        var mixin = {
+            data() {
+                return {
+                    Model: {
+                        GUID: null,
+                        Account: null,
+                        Password: null,
+                        UserName: null,
+                        Mobile: null,
+                        DepartmentGuid: null,
+                        DepartmentName: null,
+                        EN_Name: null,
+                        EN_Nme_Simple: null,
+                        Email: null,
+                        IsCanLogin: true,
+                        Avatar: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null,
+                        IsSuper: false,
+                        SecondaryPassword: null
+                    },
+                    tableData: [],
+                    roles: [],
+                    multipleSelection: [],
+                    departments: [],
+                    dialogFormVisible: false,
+                    loading: false,
+                    loadingAllocation: false,
+                    search: '',
+                    currentPage: 1,
+                    pageSize: 100,
+                    total: 0,
+                    rules: {
+                        Account: [
+                            { required: true, message: '请输入用户账号', trigger: 'blur' },
+                            { min: 5, max: 20, message: '长度在 5 到 20 个字符', trigger: 'blur' }
+                        ],
+                        Mobile: [
+                            { required: true, message: '请输入用户密码', trigger: 'blur' },
+                            { pattern: /^1[34578]\d{9}$/, message: '目前只支持中国大陆的手机号码' }
+                        ],
+                        Email: [
+                            { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+                        ]
+                    },
+                    dialogRolesVisible: false,
+                    multipleRolesSelection: [],
+                    userGUID: null
+                }
+            },
+            created() {
+                this.getData();
+                this.$http.post('/AdminManage/Department/GetAllAsync').then((res) => {
+                    for (let department of res.json().values()) {
+                        this.departments.push({ text: department.DepartmentName, value: department.GUID })
+                    }
+                }).catch((res) => {
+                    this.$message({
+                        type: 'error',
+                        center: true,
+                        message: '部门信息获取失败'
+                    });
+                });
+                this.$http.post('/AdminManage/Admin/GetRoles').then((res) => {
+                    this.$set(this, 'roles', res.json());
+                }).catch((res) => {
+                    this.$message({
+                        type: 'error',
+                        center: true,
+                        message: '角色信息获取失败'
+                    });
+                });
+            },
+            methods: {
+                getData() {
+                    this.$http.post('/AdminManage/Admin/GetAllAsync', { page: this.currentPage, pagesize: this.pageSize, keyWords: this.search }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        let data = res.json();
+                        this.$set(this, 'tableData', data.Items);
+                        this.currentPage = data.CurrentPage;
+                        this.total = data.TotalItems;
+                        this.$nextTick(() => {
+                            vm.checkPermission();
+                            vm.loadingDatas = false;
+                        });
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '用户信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                filterDepartments(value, row) {
+                    return row.DepartmentGuid === value;
+                },
+                filterStatus(value, row) {
+                    return row.IsCanLogin === value;
+                },
+                handleNew() {
+                    this.dialogFormVisible = true;
+                },
+                handleEdit(row) {
+                    this.Model = row;
+                    this.dialogFormVisible = true;
+                },
+                handleDelete(row) {
+                    this.multipleSelection.push(row);
+                    this.handleDeletes();
+                },
+                handleDeletes() {
+                    if (this.multipleSelection.length == 0) {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '请选择要删除的用户'
+                        });
+
+                    } else {
+                        this.$confirm('此操作将永久删除该数据, 是否继续?', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning',
+                            center: true
+                        }).then(() => {
+                            this.$prompt('敏感操作：请输入您的二级密码', {
+                                inputType: 'password',
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                                inputErrorMessage: '请输入二级密码'
+                            }).then(({ value }) => {
+                                this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                    emulateJSON: true
+                                }).then((res) => {
+                                    let data = res.json();
+                                    if (data.success) {
+                                        this.$http.post('/AdminManage/Admin/Deletes', { values: Array.from(this.multipleSelection, s => s.GUID) }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                            let data = res.json();
+                                            if (data.success) {
+                                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                    this.$message({
+                                                        type: 'success',
+                                                        center: true,
+                                                        message: data.message,
+                                                        onClose: function () {
+                                                            vm.getData();
+                                                        }
+                                                    });
+                                                } else { location.href = data.returnUrl; }
+                                            } else {
+                                                this.$message({
+                                                    type: 'error',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.loadingDatas = false;
+                                                    }
+                                                });
+                                            }
+                                            this.multipleSelection = [];
+                                        }).catch((res) => {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: '操作失败',
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                            this.multipleSelection = [];
+                                        });
+
+                                    } else {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '验证失败'
+                                        });
+                                    }
+                                }).catch((res) => {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                });
+                                }).catch(() => { 
+                                this.$message({
+                                    type: 'info',
+                                    center: true,
+                                    message: '取消操作'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+                    }
+                    this.multipleSelection = [];
+                },
+                handleLocks() {
+                    if (this.multipleSelection.length == 0) {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '请选择要锁定的用户'
+                        });
+
+                    } else {
+                        this.$confirm('此操作将导致用户无法登录, 是否继续?', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            this.$prompt('敏感操作：请输入您的二级密码', {
+                                inputType: 'password',
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                                inputErrorMessage: '请输入二级密码'
+                            }).then(({ value }) => {
+                                this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                    emulateJSON: true
+                                }).then((res) => {
+                                    let data = res.json();
+                                    if (data.success) {
+                                        this.$http.post('/AdminManage/Admin/Locks', { values: Array.from(this.multipleSelection, s => s.GUID), IsLock: true }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                            let data = res.json();
+                                            if (data.success) {
+                                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                    this.$message({
+                                                        type: 'success',
+                                                        center: true,
+                                                        message: data.message,
+                                                        onClose: function () {
+                                                            vm.getData();
+                                                        }
+                                                    });
+                                                } else { location.href = data.returnUrl; }
+                                            } else {
+                                                this.$message({
+                                                    type: 'error',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.loadingDatas = false;
+                                                    }
+                                                });
+                                            }
+                                            this.multipleSelection = [];
+                                        }).catch((res) => {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: '操作失败',
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                            this.multipleSelection = [];
+                                        });
+
+                                    } else {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '验证失败'
+                                        });
+                                    }
+                                }).catch((res) => {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                });
+                            }).catch(() => {
+                                this.$message({
+                                    type: 'info',
+                                    center: true,
+                                    message: '取消操作'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+                    }
+                },
+                handleUnLocks() {
+                    if (this.multipleSelection.length == 0) {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '请选择要解锁的用户'
+                        });
+
+                    } else {
+                        this.$prompt('敏感操作：请输入您的二级密码', {
+                            inputType: 'password',
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                            inputErrorMessage: '请输入二级密码'
+                        }).then(({ value }) => {
+                            this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                emulateJSON: true
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    this.$http.post('/AdminManage/Admin/Locks', { values: Array.from(this.multipleSelection, s => s.GUID), IsLock: false }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                        let data = res.json();
+                                        if (data.success) {
+                                            if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                this.$message({
+                                                    type: 'success',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.getData();
+                                                    }
+                                                });
+                                            } else { location.href = data.returnUrl; }
+                                        } else {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: data.message,
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                        }
+                                        this.multipleSelection = [];
+                                    }).catch((res) => {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '操作失败',
+                                            onClose: function () {
+                                                vm.loadingDatas = false;
+                                            }
+                                        });
+                                        this.multipleSelection = [];
+                                    });
+
+                                } else {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                }
+                            }).catch((res) => {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '验证失败'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+
+                    }
+                },
+                handleSizeChange(val) {
+                    this.pageSize = val;
+                    this.getData();
+                },
+                handleCurrentChange(val) {
+                    this.currentPage = val;
+                    this.getData();
+                },
+                handleSelectionChange(val) {
+                    this.multipleSelection = val;
+                },
+                handleSelectChange(val) {
+                    this.Model.DepartmentName = this.departments.filter(p => { return p.value === val })[0].text;
+
+                }, refreshModel() {
+                    this.Model = {
+                        GUID: null,
+                        Account: null,
+                        Password: '123456',
+                        UserName: null,
+                        Mobile: null,
+                        DepartmentGuid: null,
+                        DepartmentName: null,
+                        EN_Name: null,
+                        EN_Nme_Simple: null,
+                        Email: null,
+                        IsCanLogin: true,
+                        Avatar: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null,
+                        IsSuper: false,
+                        SecondaryPassword: '5316545'
+                    };
+                },
+                submitForm(formName) {
+                    this.$refs[formName].validate((valid) => {
+                        if (valid) {
+                            this.$http.post('/AdminManage/Admin/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                                emulateJSON: true, before: function () {
+                                    this.loading = true;
+                                }
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    if (data.returnUrl === null || data.returnUrl === undefined) {
+                                        this.$message({
+                                            type: 'success',
+                                            center: true,
+                                            message: data.message,
+                                            onClose: function () {
+                                                vm.loading = false;
+                                                vm.dialogFormVisible = false;
+                                                vm.getData();
+                                            }
+                                        });
+                                    } else { location.href = data.returnUrl; }
+                                } else {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.loading = false;
+                                            vm.dialogFormVisible = false;
+                                        }
+                                    });
+                                }
+                            }).catch((res) => {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '系统超时'
+                                });
+                                this.loading = false;
+                            });
+                        } else {
+                            return false;
+                        }
+                    });
+                },
+                GetRoles(row) {
+                    this.userGUID = row.GUID;
+                    this.dialogRolesVisible = true;
+                    this.$http.post('/AdminManage/Admin/GetRoleAssignments', { GUID: row.GUID }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        let data = res.json();
+                        this.$nextTick(function () {
+                            this.$refs.multipleTable.clearSelection();
+                            for (let i = 0; i < this.roles.length; i++) {
+                                if (data.includes(this.roles[i].GUID)) {
+                                    this.$refs.multipleTable.toggleRowSelection(this.roles[i]);
+                                }
+
+                            }
+                            vm.loadingDatas = false;
+                        });
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '用户角色信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                refreshRoles() {
+                    this.multipleRolesSelection = [];
+                    this.userGUID = null;
+
+                },
+                handleRoleSelectionChange(val) {
+                    this.multipleRolesSelection = val;
+                },
+                allocation() {
+                    this.$http.post('/AdminManage/Admin/Allocation', { guid: this.userGUID, values: Array.from(this.multipleRolesSelection, s => s.GUID) }, {
+                        emulateJSON: true, before: function () {
+                            this.loadingAllocation = true;
+                        }
+                    }).then((res) => {
+                        let data = res.json();
+                        if (data.success) {
+                            if (data.returnUrl === null || data.returnUrl === undefined) {
+                                this.$message({
+                                    type: 'success',
+                                    center: true,
+                                    message: data.message,
+                                    onClose: function () {
+                                        vm.loadingAllocation = false;
+                                        vm.dialogRolesVisible = false;
+                                    }
+                                });
+                            } else { location.href = data.returnUrl; }
+                        } else {
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: data.message,
+                                onClose: function () {
+                                    vm.loadingAllocation = false;
+                                    vm.dialogRolesVisible = false;
+                                }
+                            });
+                        }
+
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '系统超时',
+                            onClose: function () {
+                                vm.loadingAllocation = false;
+                                vm.dialogRolesVisible = false;
+                            }
+                        });
+                    });
+                }
+            }
+        };
+    </script>
+}

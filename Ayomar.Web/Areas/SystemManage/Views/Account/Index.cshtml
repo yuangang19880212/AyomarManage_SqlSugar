@@ -1,0 +1,110 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>Ayomar统一登录中心</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link href="/lib/element/css/index.css" rel="stylesheet" />
+    <link href="/lib/icons/css/iconfont.css" rel="stylesheet" />
+    <link href="~/css/systemmanage/login.min.css" rel="stylesheet" />
+</head>
+<body>
+    <el-row id="login">
+        <el-col :span="12" align="center"><img src="/images/chimp.png" /></el-col>
+        <el-col :span="12">
+            <el-col :span="18" align="center">
+                <img src="/images/login_logo.png" />
+            </el-col>
+            <el-col :span="18">
+                <el-form ref="form" :model="Model" :rules="rules">
+                    @Html.AntiForgeryToken()
+                    <el-form-item label="Your Account or Mobile or Email Address" prop="account">
+                        <el-input class="ayomarInput" v-model="Model.account"></el-input>
+                    </el-form-item>
+                    <el-form-item label="Your Password" prop="password">
+                        <el-input class="ayomarInput" type="password" v-model="Model.password"></el-input>
+                    </el-form-item>
+                    <el-button @@click="submitForm('form')" icon="iconfont icon-security" :loading="loading" plain>Login</el-button>
+                </el-form>
+            </el-col>
+        </el-col>
+    </el-row>
+</body>
+</html>
+<script src="/lib/vue/lib/vue.min.js"></script>
+<script src="/lib/vue/lib/vue-resource.min.js"></script>
+<script src="/lib/element/js/index.js"></script>
+<script>
+    localStorage.removeItem("menus");
+    new Vue({
+        el: "#login",
+        data() {
+            return {
+                Model: {
+                    account: '',
+                    password: ''
+                },
+                rules: {
+                    account: [
+                        { required: true, message: 'Your Account or Mobile or Email Address', trigger: 'blur' }
+                    ],
+                    password: [
+                        { required: true, message: 'Your Password', trigger: 'change' }
+                    ]
+                },
+                loading: false
+            }
+        },
+        methods: {
+            submitForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        this.$http.post('/systemmanage/account/validateaccount', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                            emulateJSON: true, before: function () {
+                                this.loading = true;
+                            }
+                        }).then((res) => {
+                            let data = res.json();
+                            if (data.success) {
+                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                    this.$message({
+                                        type: 'success',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            this.loading = false;
+                                        }
+                                    });
+                                } else { location.href = data.returnUrl; }
+                            } else {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: data.message
+                                });
+                                this.loading = false;
+                            }
+
+                        }).catch((res) => {
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: '系统超时'
+                            });
+                            this.loading = false;
+                        });
+                    } else {
+                        return false;
+                    }
+                });
+            }
+        }
+    })
+</script>

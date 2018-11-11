@@ -1,0 +1,436 @@
+﻿@{
+}
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
+    <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+    <el-breadcrumb-item>角色管理</el-breadcrumb-item>
+</el-breadcrumb>
+<el-table :data="tableData"
+          border
+          header-cell-class-name="table-header"
+          @@selection-change="handleSelectionChange"
+          style="width: 100%">
+    <el-table-column type="selection"
+                     align="center"
+                     width="55">
+    </el-table-column>
+    <el-table-column prop="RoleName"
+                     align="center"
+                     label="角色名称">
+    </el-table-column>
+    <el-table-column prop="RoleExplain"
+                     align="center"
+                     label="角色说明">
+    </el-table-column>
+    <el-table-column prop="UpdateDate"
+                     sortable
+                     align="center"
+                     label="最后更新">
+    </el-table-column>
+    <el-table-column align="center"
+                     width="300">
+        <template slot="header" slot-scope="slot">
+            <el-dropdown :hide-on-click="false">
+                <span class="el-dropdown-link">
+                    操作 <i class="el-icon-arrow-down el-icon--right"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-circle-plus-outline" action="save" @@click="handleNew">新增数据</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-delete" action="delete" @@click="handleDeletes">删除数据</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-refresh" @@click="refreshPage">刷新页面</el-button></el-dropdown-item>
+                    <el-dropdown-item divided>
+                        <el-input v-model="search"
+                                  size="mini"
+                                  placeholder="search...">
+                            <i class="el-icon-search el-input__icon"
+                               slot="suffix"
+                               @@click="getData">
+                            </i>
+                        </el-input>
+                    </el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
+        </template>
+        <template slot-scope="scope">
+            <el-button size="mini"
+                       @@click="handleEdit(scope.row)" icon="el-icon-edit" action="save">编辑</el-button>
+            <el-button size="mini"
+                       type="danger"
+                       @@click="handleDelete(scope.row)" icon="el-icon-delete" action="delete">删除</el-button>
+            <el-button size="mini"
+                       type="primary"
+                       @@click="handleAllocation(scope.row)" action="Allocation">分配权限<i class="el-icon-arrow-down el-icon--right"></i></el-button>
+        </template>
+    </el-table-column>
+</el-table>
+<el-pagination @@size-change="handleSizeChange"
+               @@current-change="handleCurrentChange"
+               :current-page="currentPage"
+               :page-sizes="[100, 500, 1000, 2000]"
+               :page-size="pageSize"
+               layout="total, sizes, prev, pager, next, jumper"
+               :total="total">
+</el-pagination>
+<el-dialog title="" :visible.sync="dialogFormVisible" width="500px" @@closed="refreshModel" :close-on-click-modal="false">
+    <el-form :model="Model" :rules="rules" ref="form">
+        @Html.AntiForgeryToken()
+        <el-form-item label="角色名称" label-width="100px" label-position="right" prop="RoleName">
+            <el-input v-model="Model.RoleName" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="角色说明" label-width="100px" label-position="right">
+            <el-input type="textarea"
+                      :rows="3"
+                      placeholder="请输入角色说明..."
+                      v-model="Model.RoleExplain">
+            </el-input>
+        </el-form-item>
+    </el-form>
+    <div slot="footer" class="dialog-footer" style="text-align:center">
+        <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" :loading="loading">确 定</el-button>
+        <el-button @@click="dialogFormVisible = false" icon="el-icon-error" v-if="!loading">取 消</el-button>
+    </div>
+</el-dialog>
+<el-dialog title="" :visible.sync="dialogRolesPermissionVisible" width="800px" @@closed="refreshRolePermissions" :close-on-click-modal="false">
+    <el-table ref="multipleTable"
+              :data="permissions"
+              tooltip-effect="dark"
+              style="width: 100%">
+        <el-table-column prop="Title"
+                         label="模块名称"
+                         width="120">
+        </el-table-column>
+        <el-table-column label="权限动作">
+            <template slot-scope="scope">
+                <el-checkbox :label="item.GUID" :key="item.GUID" v-for="item in scope.row.Permissions" v-model="multipleRolesPermissionSelection">{{item.Title}}</el-checkbox>
+            </template>
+        </el-table-column>
+    </el-table>
+    <div slot="footer" class="dialog-footer" style="text-align:center">
+        <el-button type="primary" @@click="allocation" icon="el-icon-success" :loading="loadingAllocation">确 定</el-button>
+        <el-button @@click="dialogRolesPermissionVisible = false" icon="el-icon-error" v-if="!loadingAllocation">取 消</el-button>
+    </div>
+</el-dialog>
+@section scripts{
+    <script>
+        var mixin = {
+            data() {
+                return {
+                    Model: {
+                        GUID: null,
+                        RoleName: null,
+                        RoleExplain: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null
+                    },
+                    tableData: [],
+                    multipleSelection: [],
+                    dialogFormVisible: false,
+                    loading: false,
+                    loadingAllocation: false,
+                    search: '',
+                    currentPage: 1,
+                    pageSize: 100,
+                    total: 0,
+                    rules: {
+                        RoleName: [
+                            { required: true, message: '请输入角色名称', trigger: 'blur' }
+                        ]
+                    },
+                    permissions:[],
+                    dialogRolesPermissionVisible: false,
+                    multipleRolesPermissionSelection: [],
+                    roleGUID: null
+                }
+            },
+            created() {
+                this.getData();
+            },
+            methods: {
+                getData() {
+                    this.$http.post('/AdminManage/Role/GetAllAsync', { page: this.currentPage, pagesize: this.pageSize, keyWords: this.search }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        let data = res.json();
+                        this.$set(this, 'tableData', data.Items);
+                        this.currentPage = data.CurrentPage;
+                        this.total = data.TotalItems;
+                        this.$nextTick(() => {
+                            vm.checkPermission();
+                            vm.loadingDatas = false;
+                        });
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '角色信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handleNew() {
+                    this.dialogFormVisible = true;
+                },
+                handleEdit(row) {
+                    this.Model = row;
+                    this.dialogFormVisible = true;
+                },
+                handleDelete(row) {
+                    this.multipleSelection.push(row);
+                    this.handleDeletes();
+                },
+                handleDeletes() {
+                    if (this.multipleSelection.length == 0) {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '请选择要删除的角色'
+                        });
+
+                    } else {
+                        this.$confirm('此操作将永久删除该数据, 是否继续?', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            this.$prompt('敏感操作：请输入您的二级密码', {
+                                inputType: 'password',
+                                confirmButtonText: '确定',
+                                cancelButtonText: '取消',
+                                inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                                inputErrorMessage: '请输入二级密码'
+                            }).then(({ value }) => {
+                                this.$http.post('/Components/ValidateIdentity/VerffyPassword', { password: value }, {
+                                    emulateJSON: true
+                                }).then((res) => {
+                                    let data = res.json();
+                                    if (data.success) {
+                                        this.$http.post('/AdminManage/Role/Deletes', { values: Array.from(this.multipleSelection, s => s.GUID) }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                            let data = res.json();
+                                            if (data.success) {
+                                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                                    this.$message({
+                                                        type: 'success',
+                                                        center: true,
+                                                        message: data.message,
+                                                        onClose: function () {
+                                                            vm.getData();
+                                                        }
+                                                    });
+                                                } else { location.href = data.returnUrl; }
+                                            } else {
+                                                this.$message({
+                                                    type: 'error',
+                                                    center: true,
+                                                    message: data.message,
+                                                    onClose: function () {
+                                                        vm.loadingDatas = false;
+                                                    }
+                                                });
+                                            }
+                                            this.multipleSelection = [];
+                                        }).catch((res) => {
+                                            this.$message({
+                                                type: 'error',
+                                                center: true,
+                                                message: '操作失败',
+                                                onClose: function () {
+                                                    vm.loadingDatas = false;
+                                                }
+                                            });
+                                            this.multipleSelection = [];
+                                        });
+
+                                    } else {
+                                        this.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: '验证失败'
+                                        });
+                                    }
+                                }).catch((res) => {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: '验证失败'
+                                    });
+                                });
+                            }).catch(() => {
+                                this.$message({
+                                    type: 'info',
+                                    center: true,
+                                    message: '取消操作'
+                                });
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                center: true,
+                                message: '取消操作'
+                            });
+                        });
+                    }
+                    this.multipleSelection = [];
+                },               
+                handleAllocation(row) {
+                    if (this.permissions.length === 0) {
+                        this.getPermissions();
+                    }
+                    this.roleGUID = row.GUID;
+                    this.dialogRolesPermissionVisible = true;
+                    this.$http.post('/AdminManage/Role/GetRolePermissionsAsync', { GUID: row.GUID }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        this.multipleRolesPermissionSelection = res.json();
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '用户角色信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handleSizeChange(val) {
+                    this.pageSize = val;
+                    this.getData();
+                },
+                handleCurrentChange(val) {
+                    this.currentPage = val;
+                    this.getData();
+                },
+                handleSelectionChange(val) {
+                    this.multipleSelection = val;
+                }, refreshModel() {
+                    this.Model = {
+                        GUID: null,
+                        RoleName: null,
+                        RoleExplain: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null
+                    };
+                },
+                submitForm(formName) {
+                    this.$refs[formName].validate((valid) => {
+                        if (valid) {
+                            this.$http.post('/AdminManage/Role/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                                emulateJSON: true, before: function () {
+                                    this.loading = true;
+                                }
+                            }).then((res) => {
+                                let data = res.json();
+                                if (data.success) {
+                                    if (data.returnUrl === null || data.returnUrl === undefined) {
+                                        this.$message({
+                                            type: 'success',
+                                            center: true,
+                                            message: data.message,
+                                            onClose: function () {
+                                                vm.loading = false;
+                                                vm.dialogFormVisible = false;
+                                                vm.getData();
+                                            }
+                                        });
+                                    } else { location.href = data.returnUrl; }
+                                } else {
+                                    this.$message({
+                                        type: 'error',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.loading = false;
+                                            vm.dialogFormVisible = false;
+                                        }
+                                    });
+                                }
+                            }).catch((res) => {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: '系统超时'
+                                });
+                                this.loading = false;
+                            });
+                        } else {
+                            return false;
+                        }
+                    });
+                },
+                refreshRolePermissions() {
+                    this.roleGUID = null;
+                    this.multipleRolesPermissionSelection = [];
+                    this.loadingDatas = false;
+                },
+                getPermissions() {
+                    this.$http.post('/AdminManage/Role/GetPermissions', {
+                         before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        let data = res.json();
+                        this.$set(this, 'permissions', data);
+                        this.loadingDatas = false;
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '权限信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                allocation() {
+                    this.$http.post('/AdminManage/Role/Allocation', { guid: this.roleGUID, values: this.multipleRolesPermissionSelection}, {
+                        emulateJSON: true, before: function () {
+                            this.loadingAllocation = true;
+                        }
+                    }).then((res) => {
+                        let data = res.json();
+                        if (data.success) {
+                            if (data.returnUrl === null || data.returnUrl === undefined) {
+                                this.$message({
+                                    type: 'success',
+                                    center: true,
+                                    message: data.message,
+                                    onClose: function () {
+                                        vm.loadingAllocation = false;
+                                        vm.dialogRolesPermissionVisible = false;
+                                    }
+                                });
+                            } else { location.href = data.returnUrl; }
+                        } else {
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: data.message,
+                                onClose: function () {
+                                    vm.loadingAllocation = false;
+                                    vm.dialogRolesPermissionVisible = false;
+                                }
+                            });
+                        }
+
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '系统超时',
+                            onClose: function () {
+                                vm.loadingAllocation = false;
+                                vm.dialogRolesPermissionVisible = false;
+                            }
+                        });
+                    });
+                }
+            }
+    }
+    </script>
+}

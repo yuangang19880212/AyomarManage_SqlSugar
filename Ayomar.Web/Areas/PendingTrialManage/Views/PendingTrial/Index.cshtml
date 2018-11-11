@@ -1,0 +1,284 @@
+﻿@{
+}
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>系统管理中心</el-breadcrumb-item>
+    <el-breadcrumb-item>过滤审核</el-breadcrumb-item>
+    <el-breadcrumb-item>AI审核</el-breadcrumb-item>
+</el-breadcrumb>
+<el-table :data="tableData"
+          border
+          header-cell-class-name="table-header"
+          @@selection-change="handleSelectionChange"
+          style="width: 100%">
+    <el-table-column type="expand">
+        <template slot-scope="props">
+            <el-form label-position="left" inline class="table-expand">
+                <el-form-item label="审核信息" style="color: #be0ff5;">
+                    <span>{{ props.row.AduitMessage }}</span>
+                </el-form-item>
+                <el-form-item label="待审信息" style="color: #be0ff5;">
+                    <span>{{ props.row.PendingTrialMessage }}</span>
+                </el-form-item>
+                <br />
+                <el-form-item label="待审内容" style="color: #be0ff5;">
+                    <img :src="props.row.PendingTrialContent" v-if="props.row.Genre==='Images'" />
+                    <div v-html="props.row.PendingTrialContent" v-else></div>
+                </el-form-item>
+            </el-form>
+        </template>
+    </el-table-column>
+    <el-table-column :filters="[{text: '图像', value: 'Images'}, {text: '内容', value: 'Contents'}]"
+                     :filter-method="filterTypes"
+                     align="center"
+                     prop="Genre"
+                     label="业务类型">
+        <template slot-scope="props">
+            <el-popover trigger="hover" placement="top">
+                <p>{{ props.row.PendingTrialMessage }}</p>
+                <div slot="reference" class="name-wrapper">
+                    <el-form label-position="left" inline class="table-expand">
+                        <el-tag type="primary"
+                                disable-transitions>{{props.row.Genre==='Images'?'图像':'内容'}}</el-tag>
+                    </el-form>
+                </div>
+            </el-popover>
+
+        </template>
+    </el-table-column>
+    <el-table-column :filters="[{text: '已通过', value: true}, {text: '驳回/待审', value: false}]"
+                     :filter-method="filterStatus"
+                     align="center"
+                     prop="IsPass"
+                     label="状态">
+        <template slot-scope="props">
+            <i class="iconfont icon-tongguo" style="color:#23b7e5;font-size:50px;position:absolute;top:17px;right:88px;" v-if="props.row.IsPass"></i>
+            <i class="iconfont icon-daishenhe" style="color:#b9b7b7;font-size:50px;position:absolute;top:23px;right:32px;" v-else-if="props.row.Auditor===null"></i>
+            <i class="iconfont icon-shenpibohui" style="color:#de0606;font-size:50px;position:absolute;top:17px;right:68px;" v-else></i>
+        </template>
+    </el-table-column>
+    <el-table-column prop="CreateUser"
+                     align="center"
+                     label="提交人">
+    </el-table-column>
+    <el-table-column prop="CreateDate"
+                     align="center"
+                     sortable
+                     label="提交时间">
+    </el-table-column>
+    <el-table-column prop="Auditor"
+                     align="center"
+                     label="审核人">
+    </el-table-column>
+    <el-table-column prop="AuditDate"
+                     align="center"
+                     sortable
+                     label="审核时间">
+    </el-table-column>
+    <el-table-column align="center">
+        <template slot="header" slot-scope="slot">
+            <el-dropdown :hide-on-click="false">
+                <span class="el-dropdown-link">
+                    操作 <i class="el-icon-arrow-down el-icon--right"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-refresh" @@click="refreshPage">刷新页面</el-button></el-dropdown-item>
+                    <el-dropdown-item divided>
+                        <el-input v-model="search"
+                                  size="mini"
+                                  placeholder="search...">
+                            <i class="el-icon-search el-input__icon"
+                               slot="suffix"
+                               @@click="getData">
+                            </i>
+                        </el-input>
+                    </el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
+        </template>
+        <template slot-scope="scope">
+            <el-button size="mini"
+                       :type="scope.row.IsPass?'primary':'danger'"
+                       @@click="handleAudit(scope.row)" icon="el-icon-news" action="Audit" v-if="(!scope.row.IsPass && scope.row.Auditor===null)||scope.row.IsPass">{{scope.row.IsPass?'重新审核':'审核'}}</el-button>
+        </template>
+    </el-table-column>
+</el-table>
+<el-pagination @@size-change="handleSizeChange"
+               @@current-change="handleCurrentChange"
+               :current-page="currentPage"
+               :page-sizes="[100, 500, 1000, 2000]"
+               :page-size="pageSize"
+               layout="total, sizes, prev, pager, next, jumper"
+               :total="total">
+</el-pagination>
+<el-dialog title="" :visible.sync="dialogFormVisible" width="70%" @@closed="refreshModel" :close-on-click-modal="false">
+    <el-form :model="Model" ref="form">
+        @Html.AntiForgeryToken()
+        <el-form-item label="待审信息" label-width="100px" label-position="right">
+            <span style="color: #be0ff5;" v-text="Model.PendingTrialMessage"></span>
+        </el-form-item>
+        <el-form-item label="提交人" label-width="100px" label-position="right">
+            <span style="color: #be0ff5;" v-text="Model.CreateUser"></span>
+            <span style="color: #606266;margin-left: 30px;">提交时间</span>
+            <span style="color: #be0ff5;margin-left: 15px;" v-text="Model.CreateDate"></span>
+        </el-form-item>
+        <el-form-item label="待审内容" label-width="100px" label-position="right">
+            <img :src="Model.PendingTrialContent" v-if="Model.Genre==='Images'" />
+            <div v-html="Model.PendingTrialContent" v-else></div>
+        </el-form-item>
+    </el-form>
+    <div slot="footer" class="dialog-footer" style="text-align:center">
+        <el-button type="primary" @@click="auditTrial(true)" icon="iconfont icon-security" :loading="loading">审 核 通 过</el-button>
+        <el-button type="danger" @@click="auditTrial(false)" icon="el-icon-close" :loading="loading">驳 回 拒 绝</el-button>
+    </div>
+</el-dialog>
+@section scripts{
+    <script>
+        var mixin = {
+            data() {
+                return {
+                    Model: {
+                        GUID: null,
+                        Genre: null,
+                        PendingTrialMessage: null,
+                        PendingTrialContent: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        Auditor: null,
+                        AuditDate: null,
+                        AduitMessage: null,
+                        IsPass: null
+                    },
+                    tableData: [],
+                    multipleSelection: [],
+                    dialogFormVisible: false,
+                    loading: false,
+                    search: '',
+                    currentPage: 1,
+                    pageSize: 100,
+                    total: 0
+                }
+            },
+            created() {
+                this.getData();
+            },
+            methods: {
+                getData() {
+                    this.$http.post('/PendingTrialManage/PendingTrial/GetAllAsync', { page: this.currentPage, pagesize: this.pageSize, keyWords: this.search }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        let data = res.json();
+                        this.$set(this, 'tableData', data.Items);
+                        this.currentPage = data.CurrentPage;
+                        this.total = data.TotalItems;
+                        this.$nextTick(() => {
+                            vm.checkPermission();
+                            vm.loadingDatas = false;
+                        });
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handleSizeChange(val) {
+                    this.pageSize = val;
+                    this.getData();
+                },
+                handleCurrentChange(val) {
+                    this.currentPage = val;
+                    this.getData();
+                },
+                handleSelectionChange(val) {
+                    this.multipleSelection = val;
+                },
+                filterStatus(value, row) {
+                    return row.IsPass === value;
+                },
+                filterTypes(value, row) {
+                    return row.Genre === value;
+                },
+                handleAudit(row) {
+                    this.Model = row;
+                    this.dialogFormVisible = true;
+                },
+                refreshModel() {
+                    this.Model = {
+                        GUID: null,
+                        Genre: null,
+                        PendingTrialMessage: null,
+                        PendingTrialContent: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        Auditor: null,
+                        AuditDate: null,
+                        AduitMessage: null,
+                        IsPass: null
+                    }
+                },
+                auditTrial(isPass) {
+                    this.$prompt('审核意见：请填写审核意见', {
+                        inputType: 'textarea',
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        inputPattern: /^[\s\S]*.*[^\s][\s\S]*$/,
+                        inputErrorMessage: '请填写审核意见'
+                    }).then(({ value }) => {
+                        this.Model.AduitMessage = value;
+                        this.Model.IsPass = isPass;
+                        this.$http.post('/PendingTrialManage/PendingTrial/PutAsync', { entity: this.Model, __RequestVerificationToken: document.getElementsByName("__RequestVerificationToken")[0].value }, {
+                            emulateJSON: true, before: function () {
+                                this.loading = true;
+                            }
+                        }).then((res) => {
+                            let data = res.json();
+                            if (data.success) {
+                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                    this.$message({
+                                        type: 'success',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.loading = false;
+                                            vm.dialogFormVisible = false;
+                                            vm.getData();
+                                        }
+                                    });
+                                } else { location.href = data.returnUrl; }
+                            } else {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: data.message,
+                                    onClose: function () {
+                                        vm.loading = false;
+                                        vm.dialogFormVisible = false;
+                                    }
+                                });
+                            }
+                        }).catch((res) => {
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: '系统超时'
+                            });
+                            this.loading = false;
+                        });
+
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            center: true,
+                            message: '取消操作'
+                        });;
+                    });
+                }
+            }
+        };
+    </script>
+}
