@@ -1,7 +1,361 @@
 ﻿@{
 }
+<el-breadcrumb separator-class="el-icon-arrow-right ayomar-breadcrumb">
+    <el-breadcrumb-item :to="{ path: '/SystemManage/Home' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>任务调度中心</el-breadcrumb-item>
+    <el-breadcrumb-item>调度管理</el-breadcrumb-item>
+    <el-breadcrumb-item>任务调度</el-breadcrumb-item>
+</el-breadcrumb>
+<el-table :data="tableData"
+          border
+          header-cell-class-name="table-header"
+          @@selection-change="handleSelectionChange"
+          style="width: 100%">
+    <el-table-column type="selection"
+                     align="center"
+                     width="55">
+    </el-table-column>
+    <el-table-column align="center"
+                     label="任务名称">
+        <template slot-scope="props">
+            <el-popover trigger="hover" placement="top">
+                <p>{{ props.row.TaskDescription }}</p>
+                <div slot="reference" class="name-wrapper">
+                    <el-form label-position="left" inline class="table-expand">
+                        <span v-text="props.row.JobName"></span>
+                    </el-form>
+                </div>
+            </el-popover>
+        </template>
+    </el-table-column>
+    <el-table-column :filters="groups"
+                     :filter-method="filterGroups"
+                     prop="JobGroup"
+                     align="center"
+                     label="任务组">
+    </el-table-column>
+    <el-table-column :filters="[{text: '执行中', value: '1'} ,{text: '暂停中', value: '2'},{text: '已停止', value: '0'}, {text: '已完成', value: '3'}]"
+                     :filter-method="filterStatus"
+                     prop="Status"
+                     align="center"
+                     label="计划状态">
+        <template slot-scope="props">
+            <el-tag :type="props.row.Status===0?'danger':props.row.Status===2?'warning':dateCompare(props.row.EndRunTime)?'success':'primary'"
+                    disable-transitions>{{props.row.Status===0?'已停止':props.row.Status===2?'暂停中':dateCompare(props.row.EndRunTime)?'已完成':'执行中'}}</el-tag>
+        </template>
+    </el-table-column>
+    <el-table-column prop="StarRunTime"
+                     sortable
+                     align="center"
+                     label="开始时间">
+    </el-table-column>
+    <el-table-column prop="EndRunTime"
+                     sortable
+                     align="center"
+                     label="结束时间">
+    </el-table-column>
+    <el-table-column prop="PreviousRunTime"
+                     sortable
+                     align="center"
+                     label="上次运行时间">
+    </el-table-column>
+    <el-table-column prop="NextRunTime"
+                     sortable
+                     align="center"
+                     label="下次运行时间">
+    </el-table-column>
+    <el-table-column align="center"
+                     width="300">
+        <template slot="header" slot-scope="slot">
+            <el-dropdown :hide-on-click="false">
+                <span class="el-dropdown-link">
+                    操作 <i class="el-icon-arrow-down el-icon--right"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-circle-plus-outline" action="save" @@click="handleNew">新增数据</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-delete" action="delete" @@click="handleDeletes">删除数据</el-button></el-dropdown-item>
+                    <el-dropdown-item align="center"><el-button type="text" icon="el-icon-refresh" @@click="refreshPage">刷新页面</el-button></el-dropdown-item>
+                    <el-dropdown-item divided>
+                        <el-input v-model="search"
+                                  size="mini"
+                                  placeholder="search...">
+                            <i class="el-icon-search el-input__icon"
+                               slot="suffix"
+                               @@click="getData">
+                            </i>
+                        </el-input>
+                    </el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
+        </template>
+        <template slot-scope="scope">
+            <el-button size="mini"
+                       @@click="handleEdit(scope.row)" icon="el-icon-edit" action="save">编辑</el-button>
+            <el-button size="mini"
+                       type="danger"
+                       @@click="handleDelete(scope.row)" icon="el-icon-delete" action="delete">删除</el-button>
+            <el-button size="mini"
+                       type="primary"
+                       @@click="handleStart(scope.row)" icon="iconfont icon-qidong" action="start" v-if="scope.row.Status===2">启动</el-button>
+            <el-button size="mini"
+                       type="warning"
+                       @@click="handlePause(scope.row)" icon="iconfont icon-tingzhi" action="stop" v-else>暂停</el-button>
+        </template>
+    </el-table-column>
+</el-table>
+<el-pagination @@size-change="handleSizeChange"
+               @@current-change="handleCurrentChange"
+               :current-page="currentPage"
+               :page-sizes="[100, 500, 1000, 2000]"
+               :page-size="pageSize"
+               layout="total, sizes, prev, pager, next, jumper"
+               :total="total">
+</el-pagination>
+<el-dialog title="" :visible.sync="dialogFormVisible" width="500px" @@closed="refreshModel" :close-on-click-modal="false">
+        <el-form :model="Model" :rules="rules" ref="form">
+            @Html.AntiForgeryToken()
+            <el-form-item label="任务名称" label-width="100px" label-position="right" prop="JobName">
+                <el-input v-model="Model.JobName" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="任务组" label-width="100px" label-position="right" prop="JobGroup">
+                <el-select v-model="Model.JobGroup" allow-create filterable placeholder="选择或创建任务组">
+                    <el-option v-for="item in groups"
+                               :key="item.value"
+                               :label="item.value"
+                               :value="item.value">
+                    </el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="任务" label-width="100px" label-position="right" prop="JobService">
+                <el-select v-model="Model.JobService" allow-create filterable placeholder="选择任务">
+                    <el-option v-for="item in taskJobs"
+                               :key="item.Name"
+                               :label="item.Name"
+                               :value="item.FullName">
+                    </el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="开始时间" label-width="100px" label-position="right" prop="StarRunTime">
+                <el-date-picker v-model="Model.StarRunTime"
+                                value-format="yyyy-MM-dd HH:mm:ss"
+                                type="datetime"
+                                placeholder="选择开始时间">
+                </el-date-picker>
+            </el-form-item>
+            <el-form-item label="结束时间" label-width="100px" label-position="right" prop="EndRunTime">
+                <el-date-picker v-model="Model.EndRunTime"
+                                value-format="yyyy-MM-dd HH:mm:ss"
+                                type="datetime"
+                                placeholder="选择结束时间">
+                </el-date-picker>
+            </el-form-item>
+            <el-form-item label="Cron表达式" label-width="100px" label-position="right" prop="Cron">
+                <el-input v-model="Model.Cron" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="任务描述" label-width="100px" label-position="right">
+                <el-input type="textarea"
+                          :rows="5"
+                          v-model="Model.TaskDescription">
+                </el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer" style="text-align:center">
+            <el-button type="primary" @@click="submitForm('form')" icon="el-icon-success" :loading="loading">确 定</el-button>
+            <el-button @@click="dialogFormVisible = false" icon="el-icon-error" v-if="!loading">取 消</el-button>
+        </div>
+    </el-dialog>
 @section scripts{
+    <style>
+        .icon-qidong {
+            font-size: 12px;
+        }
+    </style>
     <script>
-    var mixin = {}
+        var mixin = {
+            data() {
+                return {
+                    tableData: [],
+                    groups: [],
+                    taskJobs: [],
+                    search: '',
+                    currentPage: 1,
+                    pageSize: 100,
+                    total: 0,
+                    rules: {
+                        JobGroup: [
+                            { required: true, message: '选择或创建任务组', trigger: 'change' }
+                        ],
+                        JobName: [
+                            { required: true, message: '请输入任务名称', trigger: 'blur' }
+                        ],
+                        StarRunTime: [
+                            { required: true, message: '请选择开始时间', trigger: 'blur' }
+                        ],
+                        EndRunTime: [
+                            { required: true, message: '请选择开始时间', trigger: 'blur' }
+                        ],
+                        Cron: [
+                            { required: true, message: '请输入Cron表达式', trigger: 'blur' }
+                        ],
+                        JobService: [
+                            { required: true, message: '选择任务', trigger: 'change' }
+                        ]
+                    }
+                }
+            },
+            created() {
+                this.refreshModel();
+                this.getData();
+                this.getTaskJob();
+            },
+            methods: {
+                getData() {
+                    this.$http.post('/SchedulingManage/Scheduling/GetAllPageAsync', { page: this.currentPage, pagesize: this.pageSize, keyWords: this.search }, {
+                        emulateJSON: true, before: function () { this.loadingDatas = true }
+                    }).then((res) => {
+                        let data = res.json();
+                        this.$set(this, 'tableData', data.Items);
+                        let g = new Set(Array.from(this.tableData, s => s.JobGroup));
+                        this.groups = [];
+                        g.forEach((group) => { this.groups.push({ text: group, value: group }); });
+                        this.currentPage = data.CurrentPage;
+                        this.total = data.TotalItems;
+                        this.$nextTick(() => {
+                            vm.checkPermission();
+                            vm.loadingDatas = false;
+                        });
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '任务信息获取失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handleSizeChange(val) {
+                    this.pageSize = val;
+                    this.getData();
+                },
+                handleCurrentChange(val) {
+                    this.currentPage = val;
+                    this.getData();
+                },
+                filterStatus(value, row) {
+                    return value === '0' ? row.Status === 0 : value === '2' ? row.Status === 2 : value === '3' ? row.Status === 1 && this.dateCompare(row.EndRunTime) : row.Status === 1 && !this.dateCompare(row.EndRunTime);
+                },
+                filterGroups(value, row) {
+                    return row.JobGroup === value;
+                },
+                refreshModel() {
+                    this.Model = {
+                        GUID: null,
+                        JobGroup: null,
+                        JobName: null,
+                        Status: 0,
+                        Cron: null,
+                        StarRunTime: '',
+                        EndRunTime: '',
+                        PreviousRunTime: null,
+                        NextRunTime: null,
+                        JobService: null,
+                        CreateUser: null,
+                        CreateDate: null,
+                        UpdateUser: null,
+                        UpdateDate: null,
+                        TaskDescription: null
+                    };                  
+                },
+                dateCompare(t) {
+                    if (Date.parse(t) < new Date().getTime()) { return true; }
+                    else { return false }
+                },
+                getTaskJob() {
+                    this.$http.post('/SchedulingManage/Scheduling/GetTaskJobs').then((res) => {
+                        this.$set(this, 'taskJobs', res.json());
+                    }).catch((res) => {
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '可执行任务获取失败'
+                        });
+                    });
+                },
+                handleStart(row) {
+                    this.$http.post('/SchedulingManage/Scheduling/StartAsync', { GUID: row.GUID, JobName: row.JobName, JobGroup: row.JobGroup }, { emulateJSON: true, before: function () { this.loadingDatas = true; this.multipleSelection = []; } }).then((res) => {
+                        let data = res.json();
+                        if (data.success) {
+                            if (data.returnUrl === null || data.returnUrl === undefined) {
+                                this.$message({
+                                    type: 'success',
+                                    center: true,
+                                    message: data.message,
+                                    onClose: function () {
+                                        vm.getData();
+                                    }
+                                });
+                            } else { location.href = data.returnUrl; }
+                        } else {
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: data.message,
+                                onClose: function () {
+                                    vm.loadingDatas = false;
+                                }
+                            });
+                        }
+                    }).catch((res) => {
+                        this.multipleSelection = [];
+                        this.$message({
+                            type: 'error',
+                            center: true,
+                            message: '操作失败',
+                            onClose: function () {
+                                vm.loadingDatas = false;
+                            }
+                        });
+                    });
+                },
+                handlePause(row) {
+                        this.$http.post('/SchedulingManage/Scheduling/PauseAsync', { GUID: row.GUID, JobName: row.JobName, JobGroup: row.JobGroup }, { emulateJSON: true, before: function () { this.loadingDatas = true; this.multipleSelection = []; } }).then((res) => {
+                            let data = res.json();
+                            if (data.success) {
+                                if (data.returnUrl === null || data.returnUrl === undefined) {
+                                    this.$message({
+                                        type: 'success',
+                                        center: true,
+                                        message: data.message,
+                                        onClose: function () {
+                                            vm.getData();
+                                        }
+                                    });
+                                } else { location.href = data.returnUrl; }
+                            } else {
+                                this.$message({
+                                    type: 'error',
+                                    center: true,
+                                    message: data.message,
+                                    onClose: function () {
+                                        vm.loadingDatas = false;
+                                    }
+                                });
+                            }
+                        }).catch((res) => {
+                            this.multipleSelection = [];
+                            this.$message({
+                                type: 'error',
+                                center: true,
+                                message: '操作失败',
+                                onClose: function () {
+                                    vm.loadingDatas = false;
+                                }
+                            });
+                        });
+                }
+            }
+        };
     </script>
 }

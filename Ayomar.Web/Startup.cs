@@ -51,6 +51,7 @@ namespace Ayomar.Web
             services.AddTransient<Service.ISysPendingTrialService, Service.SysPendingTrialService>();
             services.AddTransient<Service.ISysScheduleService, Service.SysScheduleService>();
             #endregion
+            services.AddTransient<Service.Services.ComponentService.SchedulerService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

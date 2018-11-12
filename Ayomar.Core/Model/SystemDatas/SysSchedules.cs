@@ -29,27 +29,27 @@ namespace Ayomar.Core.Model
         /// <summary>
         /// 开始运行时间
         /// </summary>
-        public DateTimeOffset StarRunTime { get; set; }
+        public DateTime StarRunTime { get; set; }
         /// <summary>
         /// 结束运行时间
         /// </summary>
-        public DateTimeOffset EndRunTime { get; set; }
+        public DateTime EndRunTime { get; set; }
         /// <summary>
         /// 上次时间
         /// </summary>
-        public DateTimeOffset? PreviousRunTime { get; set; }
+        public DateTime? PreviousRunTime { get; set; }
         /// <summary>
         /// 下次执行时间
         /// </summary>
-        public DateTimeOffset? NextRunTime { get; set; }
+        public DateTime? NextRunTime { get; set; }
         /// <summary>
         /// 要执行的任务
         /// </summary>
         public string JobService { get; set; }
         public string CreateUser { get; set; }
-        public DateTimeOffset CreateDate { get; set; }
+        public DateTime CreateDate { get; set; }
         public string UpdateUser { get; set; }
-        public DateTimeOffset UpdateDate { get; set; }
+        public DateTime UpdateDate { get; set; }
         /// <summary>
         /// 任务描述
         /// </summary>

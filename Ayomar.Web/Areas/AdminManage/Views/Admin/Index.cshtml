@@ -306,7 +306,7 @@
                                 }).then((res) => {
                                     let data = res.json();
                                     if (data.success) {
-                                        this.$http.post('/AdminManage/Admin/Locks', { values: Array.from(this.multipleSelection, s => s.GUID), IsLock: true }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                        this.$http.post('/AdminManage/Admin/Locks', { values: Array.from(this.multipleSelection, s => s.GUID), IsLock: true }, { emulateJSON: true, before: function () { this.loadingDatas = true; this.multipleSelection = []; } }).then((res) => {
                                             let data = res.json();
                                             if (data.success) {
                                                 if (data.returnUrl === null || data.returnUrl === undefined) {
@@ -329,7 +329,7 @@
                                                     }
                                                 });
                                             }
-                                            this.multipleSelection = [];
+                                            
                                         }).catch((res) => {
                                             this.$message({
                                                 type: 'error',
@@ -339,31 +339,34 @@
                                                     vm.loadingDatas = false;
                                                 }
                                             });
-                                            this.multipleSelection = [];
                                         });
 
                                     } else {
+                                        this.multipleSelection = [];
                                         this.$message({
                                             type: 'error',
                                             center: true,
                                             message: '验证失败'
                                         });
                                     }
-                                }).catch((res) => {
-                                    this.$message({
+                                    }).catch((res) => {
+                                        this.multipleSelection = [];
+                                        this.$message({
                                         type: 'error',
                                         center: true,
                                         message: '验证失败'
                                     });
                                 });
-                            }).catch(() => {
+                                }).catch(() => {
+                                    this.multipleSelection = [];
                                 this.$message({
                                     type: 'info',
                                     center: true,
                                     message: '取消操作'
                                 });
                             });
-                        }).catch(() => {
+                            }).catch(() => {
+                                this.multipleSelection = [];
                             this.$message({
                                 type: 'info',
                                 center: true,
@@ -393,7 +396,7 @@
                             }).then((res) => {
                                 let data = res.json();
                                 if (data.success) {
-                                    this.$http.post('/AdminManage/Admin/Locks', { values: Array.from(this.multipleSelection, s => s.GUID), IsLock: false }, { emulateJSON: true, before: function () { this.loadingDatas = true } }).then((res) => {
+                                    this.$http.post('/AdminManage/Admin/Locks', { values: Array.from(this.multipleSelection, s => s.GUID), IsLock: false }, { emulateJSON: true, before: function () { this.loadingDatas = true; this.multipleSelection = []; } }).then((res) => {
                                         let data = res.json();
                                         if (data.success) {
                                             if (data.returnUrl === null || data.returnUrl === undefined) {
@@ -416,7 +419,6 @@
                                                 }
                                             });
                                         }
-                                        this.multipleSelection = [];
                                     }).catch((res) => {
                                         this.$message({
                                             type: 'error',
@@ -426,10 +428,10 @@
                                                 vm.loadingDatas = false;
                                             }
                                         });
-                                        this.multipleSelection = [];
                                     });
 
                                 } else {
+                                    this.multipleSelection = [];
                                     this.$message({
                                         type: 'error',
                                         center: true,
@@ -437,6 +439,7 @@
                                     });
                                 }
                             }).catch((res) => {
+                                this.multipleSelection = [];
                                 this.$message({
                                     type: 'error',
                                     center: true,
@@ -444,12 +447,13 @@
                                 });
                             });
                         }).catch(() => {
-                            this.$message({
-                                type: 'info',
-                                center: true,
-                                message: '取消操作'
+                                this.multipleSelection = [];
+                                this.$message({
+                                    type: 'info',
+                                    center: true,
+                                    message: '取消操作'
+                                });
                             });
-                        });
 
                     }
                 },
