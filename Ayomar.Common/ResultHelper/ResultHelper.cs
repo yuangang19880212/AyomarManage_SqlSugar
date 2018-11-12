@@ -22,6 +22,11 @@ namespace Ayomar.Common.ResultHelper
         public object data { get; set; }
     }
     #endregion
+    public class ResQuartz
+    {
+        public bool scuess { get; set; }
+        public bool IsAnyJob { get; set; }
+    }
 
     #region 图像审核返回Model
     public class ImageCensoring

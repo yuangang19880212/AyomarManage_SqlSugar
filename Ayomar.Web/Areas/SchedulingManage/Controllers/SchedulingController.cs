@@ -83,7 +83,7 @@ namespace Ayomar.Web.Areas.SchedulingManage.Controllers
                 entity.Status = 1;
                 //添加任务计划
                 var dateOffset = await schedulerService.AddJobAsync(entity.JobName, entity.JobGroup, entity.JobService, entity.Cron, Unitls.DateTimeToDateTimeOffset(entity.StarRunTime), Unitls.DateTimeToDateTimeOffset(entity.EndRunTime));
-                entity.NextRunTime = dateOffset.DateTime;
+                entity.NextRunTime = dateOffset.DateTime.AddHours(8);
 
                 if (await sysScheduleService.SaveOrUpdateAsync(entity, IsSave))
                 {
@@ -157,7 +157,8 @@ namespace Ayomar.Web.Areas.SchedulingManage.Controllers
 
             try
             {
-                if (await schedulerService.ReStartJobAsync(JobName, JobGroup))
+                var res = await schedulerService.ReStartJobAsync(JobName, JobGroup);
+                if (res.scuess)
                 {
                     if (sysScheduleService.ExecuteSql("UPDATE SysSchedules SET STATUS = 1 WHERE GUID ='" + GUID + "'") > 0)
                     {
@@ -167,7 +168,13 @@ namespace Ayomar.Web.Areas.SchedulingManage.Controllers
                     else
                         json.message = "操作失败";
                 }
-                else json.message = "操作失败";
+                else
+                {
+                    if(res.IsAnyJob)
+                        json.message = "操作失败";
+                    else
+                        json.message = "操作失败,任务进程已丢失,请重新保存或发布任务";
+                }
             }
             catch (Exception ex)
             {
@@ -192,7 +199,8 @@ namespace Ayomar.Web.Areas.SchedulingManage.Controllers
 
             try
             {
-                if (await schedulerService.PauseJobAsync(JobName, JobGroup))
+                var res = await schedulerService.PauseJobAsync(JobName, JobGroup);
+                if (res.scuess)
                 {
                     if (sysScheduleService.ExecuteSql("UPDATE SysSchedules SET STATUS = 2 WHERE GUID ='" + GUID + "'") > 0)
                     {
@@ -202,7 +210,13 @@ namespace Ayomar.Web.Areas.SchedulingManage.Controllers
                     else
                         json.message = "操作失败";
                 }
-                else json.message = "操作失败";
+                else
+                {
+                    if (res.IsAnyJob)
+                        json.message = "操作失败";
+                    else
+                        json.message = "操作失败,任务进程已丢失,请重新保存或发布任务";
+                }
             }
             catch (Exception ex)
             {

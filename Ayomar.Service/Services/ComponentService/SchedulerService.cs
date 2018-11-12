@@ -1,4 +1,5 @@
-﻿using Quartz;
+﻿using Ayomar.Common.ResultHelper;
+using Quartz;
 using Quartz.Impl;
 using System;
 using System.Collections.Generic;
@@ -70,8 +71,9 @@ namespace Ayomar.Service.Services.ComponentService
         /// 暂停指定任务计划
         /// </summary>
         /// <returns></returns>
-        public async Task<bool> PauseJobAsync(string JobName, string JobGroup)
+        public async Task<ResQuartz> PauseJobAsync(string JobName, string JobGroup)
         {
+            var res = new ResQuartz() { scuess = false };
             try
             {
                 scheduler = await SchedulerAsync();
@@ -80,14 +82,16 @@ namespace Ayomar.Service.Services.ComponentService
                 if (await scheduler.CheckExists(job))
                 {
                     await scheduler.PauseJob(job);
-                    return true;
+                    res.scuess = true;
                 }
-                else { return false; }
+                else { res.IsAnyJob = false; }
             }
             catch
-            {               
-                return false;
+            {
+                res.IsAnyJob = false;
             }
+
+            return res;
         }
 
 
@@ -99,8 +103,9 @@ namespace Ayomar.Service.Services.ComponentService
         /// <param name="JobGroup"></param>
         /// <param name="operUser"></param>
         /// <returns></returns>
-        public async Task<bool> ReStartJobAsync(string JobName, string JobGroup)
+        public async Task<ResQuartz> ReStartJobAsync(string JobName, string JobGroup)
         {
+            var res = new ResQuartz() { scuess = false };
 
             try
             {
@@ -112,15 +117,17 @@ namespace Ayomar.Service.Services.ComponentService
                 if (await scheduler.CheckExists(job))
                 {
                     await scheduler.ResumeJob(job);
-                    return true;
+                    res.scuess = true;
                 }
-                else { return false; }
+                else { res.IsAnyJob = false; }
                 
             }
             catch
             {
-                return false;
+                res.IsAnyJob = false;
             }
+
+            return res;
         }
 
         /// <summary>
